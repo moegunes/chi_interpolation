@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data / results
+*.npy
+*.npz
+*.h5
+*.hdf5
+results/
+output/
+
+# Slurm
+*.out
+*.err
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+
+
