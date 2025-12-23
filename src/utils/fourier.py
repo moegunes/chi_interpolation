@@ -116,3 +116,38 @@ def chi_r_from_chi_q_fast(qlist, chi_q, rlist=None):
         )
     chi_r_interp = np.interp(rlist, r_grid, chi_r_on_dual)
     return chi_r_interp
+
+
+def r_grid_from_q(q):
+    """
+    Compute the dual r-grid corresponding to a uniform q-grid
+    used in the DST-I spherical transform.
+
+    Parameters
+    ----------
+    q : array_like
+        Uniform q-grid starting at 0 or dq.
+
+    Returns
+    -------
+    r_grid : ndarray
+        Dual r-grid corresponding to the DST-I transform.
+    """
+    q = np.asarray(q, float)
+
+    if q.ndim != 1 or q.size < 2:
+        raise ValueError("q must be a 1D array with at least two points.")
+
+    dq = q[1] - q[0]
+
+    # Drop q=0 if present (DST-I convention)
+    if np.isclose(q[0], 0.0):
+        N = q.size - 1
+    else:
+        if not np.isclose(q[0], dq):
+            raise ValueError("q must start at 0 or at dq.")
+        N = q.size
+
+    m = np.arange(1, N + 1)
+    r_grid = m * np.pi / ((N + 1) * dq)
+    return r_grid
