@@ -4,11 +4,11 @@ import numpy as np
 
 from input import q, r
 from optimization.fitting import fit_params
-from optimization.models import X_r2_two_mode_2
+from optimization.models import X_r2_two_mode_nl
 from utils.io import write_dict
 
-model = X_r2_two_mode_2
-gamma = 1
+model = X_r2_two_mode_nl
+gamma = 2
 
 rslist = np.arange(2, 10.25, 0.25)
 inverse = False

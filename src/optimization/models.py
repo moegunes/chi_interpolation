@@ -1,6 +1,85 @@
 import numpy as np
 
-from analysis.physics import I_n_m, K, get_B
+from analysis.physics import I_n_cos, I_n_m, I_n_sin, K, get_B
+
+
+def X_r2_two_mode_nl(r, rs, params, gamma, get_constraints=False):
+    """
+    Two-mode model with r^2 prefactor, phase eliminated:
+
+        X(r) = r^(3-gamma) * [
+            e^{-alpha0 r} (C0 cos(k0 r) + D0 sin(k0 r))
+          + e^{-alpha1 r} (C1 cos(k1 r) + D1 sin(k1 r))
+        ]
+
+    Fit parameters:
+        params = [alpha0, f0, alpha1, f1]
+
+    Linear amplitudes (solved from constraints):
+        [C0, D0, C1, D1]
+    """
+    r = np.asarray(r, float)
+
+    alpha0, f0, alpha1, f1 = params
+    k0 = 2.0 * np.pi * f0
+    k1 = 2.0 * np.pi * f1
+
+    # ---- exact constraints ----
+    # example: n = 1 and n = 0 (same as your original)
+    n = 1
+
+    Mmat = np.array(
+        [
+            [
+                I_n_cos(0, k0, alpha0),
+                I_n_sin(0, k0, alpha0),
+                I_n_cos(0, k1, alpha1),
+                I_n_sin(0, k1, alpha1),
+            ],
+            [
+                I_n_cos(1, k0, alpha0),
+                I_n_sin(1, k0, alpha0),
+                I_n_cos(1, k1, alpha1),
+                I_n_sin(1, k1, alpha1),
+            ],
+            [
+                I_n_cos(2, k0, alpha0),
+                I_n_sin(2, k0, alpha0),
+                I_n_cos(2, k1, alpha1),
+                I_n_sin(2, k1, alpha1),
+            ],
+            [
+                I_n_cos(3, k0, alpha0),
+                I_n_sin(3, k0, alpha0),
+                I_n_cos(3, k1, alpha1),
+                I_n_sin(3, k1, alpha1),
+            ],
+        ]
+    )
+
+    b = np.array(
+        [
+            K(0, rs),
+            K(1, rs),
+            K(2, rs),
+            K(3, rs),
+        ]
+    )
+
+    # Solve for amplitudes (minimum-norm if underdetermined)
+    # C0, D0, C1, D1 = np.linalg.lstsq(Mmat, b, rcond=None)[0]
+    C0, D0, C1, D1 = np.linalg.solve(Mmat, b)
+
+    if get_constraints:
+        return C0, D0, C1, D1
+
+    # ---- build X(r) ----
+    X = r ** (3 - gamma) * (
+        np.exp(-alpha0 * r) * (C0 * np.cos(k0 * r) + D0 * np.sin(k0 * r))
+        + np.exp(-alpha1 * r) * (C1 * np.cos(k1 * r) + D1 * np.sin(k1 * r))
+    )
+
+    return X
 
 
 def X_r2_two_mode(r, B, rs, factor, params, get_constraints=False):

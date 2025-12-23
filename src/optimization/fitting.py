@@ -40,11 +40,17 @@ def fit_params(rslist, q, r, model=X_r2_two_mode, inverse=False, gamma=1):
                 initial_guess = [
                     1,
                     2 * kF / (2 * np.pi),
-                    np.pi / 2,
                     0.3,
                     2 * kF / (2 * np.pi),
-                    np.pi / 2 - 1e-4,
                 ]
+                # initial_guess = [
+                #    1,
+                #    2 * kF / (2 * np.pi),
+                #    np.pi / 2,
+                #    0.3,
+                #    2 * kF / (2 * np.pi),
+                #    np.pi / 2 - 1e-4,
+                # ]
         else:
             initial_guess = parameters[rslist[idx_rs - 1]]
 
@@ -62,8 +68,8 @@ def guess_X(r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8):
     fit_idx0 = np.argmin(np.abs(kF * r - kFr0))
     fit_idx1 = np.argmin(np.abs(kF * r - kFr1))
 
-    def model_wrapper(r, alpha0, f0, phi0, alpha1, f1, phi1):
-        params = [alpha0, f0, phi0, alpha1, f1, phi1]
+    def model_wrapper(r, alpha0, f0, alpha1, f1):
+        params = [alpha0, f0, alpha1, f1]
         return model(r, rs=rs, params=params, gamma=gamma)
 
     p_opt, p_cov = curve_fit(

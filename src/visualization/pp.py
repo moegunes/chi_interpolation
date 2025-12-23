@@ -3,7 +3,7 @@ import numpy as np
 from numpy import pi
 
 from analysis.modes import get_constraints
-from analysis.physics import canon_cos_phase, get_chi, get_gas_params
+from analysis.physics import get_chi, get_gas_params
 from optimization.production import get_chi_interp
 from utils.fourier import chi_q_from_chi_r_fast
 from utils.utils_chi import chi00q, corradini_pz
@@ -23,21 +23,17 @@ def plot_parameters(params_dict):
 
     B0l = []
     B1l = []
-    for j in range(3):
+    for j in range(2):
         coef1l = []
         coef2l = []
 
         for rs_i in range(len(rsl)):
             rs = rsl[rs_i]
-            mode1 = params_dict[rs][0:3]
-            mode2 = params_dict[rs][3:6]
+            mode1 = params_dict[rs][0:2]
+            mode2 = params_dict[rs][2:4]
             coef1, coef2 = mode1[j], mode2[j]
-            if j == 2:
-                coef1l.append(canon_cos_phase(np.mod(coef1, 2 * np.pi)))
-                coef2l.append(canon_cos_phase(np.mod(coef2, 2 * np.pi)))
-            else:
-                coef1l.append(coef1)
-                coef2l.append(coef2)
+            coef1l.append(coef1)
+            coef2l.append(coef2)
 
         ax[j].plot(rsl, coef1l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
         ax[j].plot(rsl, coef2l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
@@ -52,13 +48,20 @@ def plot_parameters(params_dict):
         elif j == 2:
             ax[j].set_ylabel(r"$\phi_m$", fontsize=font_size)
 
-    B0l, B1l = get_constraints(params_dict, rsl)
+    C0, D0, C1, D1 = get_constraints(params_dict, rsl)
 
-    ax[3].plot(rsl, B0l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
-    ax[3].plot(rsl, B1l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
+    ax[2].plot(rsl, C0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
+    ax[2].plot(rsl, C1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
+    # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
+    ax[2].legend(fontsize=font_size)
+    ax[2].set_ylabel(r"$C_m$", fontsize=font_size)
+    ax[2].tick_params(axis="both", labelsize=font_size)
+
+    ax[3].plot(rsl, D0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
+    ax[3].plot(rsl, D1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
     # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
     ax[3].legend(fontsize=font_size)
-    ax[3].set_ylabel(r"$A_m$", fontsize=font_size)
+    ax[3].set_ylabel(r"$D_m$", fontsize=font_size)
     ax[3].tick_params(axis="both", labelsize=font_size)
     # plt.plot(rsl,0*np.array(rsl)+np.pi/2)
     # plt.ylim(-.15,.15)
