@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi
 
-from analysis.modes import get_constraints
 from analysis.physics import canon_cos_phase, get_chi, get_gas_params
 from optimization.production import get_chi_interp
 from utils.fourier import chi_q_from_chi_r_fast
@@ -157,3 +156,19 @@ def plot_chi(r, q, params_dict, rs, error=False):
     print(f"∫chi(r)r^2dr: {np.sum(chi_interpp * r**2) * dr:.6f}")
     # fig.subplots_adjust(hspace=1.4)
     fig.subplots_adjust(hspace=0.35, left=0.15, right=0.95, top=0.92, bottom=0.12)
+
+
+def get_constraints(params_dict, rslist):
+    model = params_dict["model"]
+    gamma = params_dict["gamma"]
+    B0_list = []
+    B1_list = []
+
+    for rs in rslist:
+        p_opt = params_dict[rs]
+        B0, B1 = model(
+            r=0, rs=rs, params=p_opt, gamma=gamma, get_constraints=True
+        )  # r=0 is a dummy value
+        B0_list.append(B0)
+        B1_list.append(B1)
+    return np.array(B0_list), np.array(B1_list)

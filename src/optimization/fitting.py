@@ -1,11 +1,13 @@
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, least_squares
 
 from analysis.physics import get_B, get_chi
-from optimization.models import X_r2_two_mode
+from optimization.models import X_r2_two_mode, moment_residuals
 
 
-def fit_params(rslist, q, r, model=X_r2_two_mode, inverse=False, gamma=1):
+def fit_params(
+    rslist, q, r, model=X_r2_two_mode, inverse=False, gamma=1, fit_residue=False
+):
     from tqdm import tqdm
 
     parameters = {}
@@ -48,9 +50,23 @@ def fit_params(rslist, q, r, model=X_r2_two_mode, inverse=False, gamma=1):
         else:
             initial_guess = parameters[rslist[idx_rs - 1]]
 
-        p_opt, p_cov = guess_X(
-            r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8
-        )
+        if fit_residue == "moment":
+            p_opt, p_cov = guess_X_moments(rs, initial_guess, n_residuals=(2,))
+
+        elif fit_residue == "hybrid":
+            res = least_squares(
+                hybrid_residuals,
+                x0=initial_guess,
+                args=(r, rs, X_exact, gamma, (2,), 1),
+                max_nfev=30000,
+            )
+            p_opt = res.x
+            p_cov = None
+
+        else:  # pure r-space
+            p_opt, p_cov = guess_X(
+                r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8
+            )
 
         parameters[rs] = p_opt
         parameters_cov[rs] = p_cov
@@ -75,6 +91,27 @@ def guess_X(r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8):
     )
 
     return p_opt, p_cov
+
+
+def guess_X_moments(rs, initial_guess, n_residuals=(2,)):
+    res = least_squares(
+        moment_residuals,
+        x0=initial_guess,
+        args=(rs, n_residuals),
+        max_nfev=30000,
+    )
+    return res.x, res
+
+
+def hybrid_residuals(params, r, rs, X_exact, gamma, n_residuals=(2, 3), w_moment=1.0):
+    # r-space residual
+    X_model = X_r2_two_mode(r, rs, params, gamma)
+    res_r = X_model - X_exact
+
+    # moment residual
+    res_m = moment_residuals(params, rs, n_residuals)
+
+    return np.concatenate([res_r, w_moment * res_m])
 
 
 def guess_AB(r, kF, exact, model, initial_guess, kFr0=24, kFr1=39):
