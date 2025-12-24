@@ -85,13 +85,33 @@ def canon_cos_phase(phi):
 
 def chi_moment(n, rs):
     kF = (9 * np.pi / 4) ** (1 / 3) / rs
-    fxc0 = corradini_pz(rs, 0)
+    f0 = corradini_pz(rs, 0)
     if n == 0:
         return 0
     if n == 1:
         return 3 / (8 * np.pi**2)
     if n == 2:
-        return 15 / (16 * np.pi * kF) + 15 * fxc0 / (16 * np.pi**3)
+        return 15 / (16 * np.pi * kF) + 15 * f0 / (16 * np.pi**3)
+    if n == 3:
+
+        def f1_corradini(rs, dq):
+            q = np.array([-dq, 0.0, dq])
+            f = corradini_pz(rs, q)
+            fpp = (f[2] - 2 * f[1] + f[0]) / dq**2
+            return 0.5 * fpp
+
+        f1 = f1_corradini(rs, 1e-3)
+        der = (
+            -45
+            / (4 * kF**2 * np.pi**3)
+            * (
+                f0**2 * kF**2
+                - 4 * f1 * kF**2 * np.pi
+                + 2 * f0 * kF * np.pi**2
+                + np.pi**4
+            )
+        )
+        return -1 / (4 * np.pi) * 7 * der
 
 
 def chi0_moment(n, rs):
@@ -102,6 +122,8 @@ def chi0_moment(n, rs):
         return -1 / (8 * np.pi**3 * kF)
     if n == 2:
         return 1 / (8 * np.pi**3 * kF**3)
+    if n == 3:
+        return -1 / (4 * np.pi) * 5 / (6 * kF**5 * np.pi**2)
 
 
 def K(n, rs):

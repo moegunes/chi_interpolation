@@ -8,11 +8,11 @@ from optimization.models import X_r2_two_mode
 from utils.io import write_dict
 
 model = X_r2_two_mode
-gamma = 2
+gamma = 1
 
 rslist = np.arange(2, 10.25, 0.25)
-inverse = False
-fit_residue = "hybrid"
+inverse = 0
+fit_residue = "hybrid"  # options: False, 'moment', 'hybrid'
 
 print(f"Fitting X with {model.__name__}...")
 start_time = time.time()

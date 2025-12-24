@@ -3,6 +3,7 @@ from scipy.optimize import curve_fit, least_squares
 
 from analysis.physics import get_B, get_chi
 from optimization.models import X_r2_two_mode, moment_residuals
+from utils.io import load_dict
 
 
 def fit_params(
@@ -30,14 +31,12 @@ def fit_params(
 
         if idx_rs == 0:
             if inverse:
-                initial_guess = [
-                    0.26556495,
-                    0.02491398,
-                    5.02993162,
-                    0.11291475,
-                    0.05251752,
-                    -0.29565569,
-                ]
+                params_temp = load_dict("parameters")
+                print(
+                    'Inverse fit: using parameters from "parameters" as initial guess. rs = ',
+                    10,
+                )
+                initial_guess = params_temp[10]
             else:
                 initial_guess = [
                     1,
@@ -51,13 +50,13 @@ def fit_params(
             initial_guess = parameters[rslist[idx_rs - 1]]
 
         if fit_residue == "moment":
-            p_opt, p_cov = guess_X_moments(rs, initial_guess, n_residuals=(2,))
+            p_opt, p_cov = guess_X_moments(rs, initial_guess, n_residuals=(2, 3))
 
         elif fit_residue == "hybrid":
             res = least_squares(
                 hybrid_residuals,
                 x0=initial_guess,
-                args=(r, rs, X_exact, gamma, (2,), 1),
+                args=(r, rs, X_exact, gamma, (2, 3), 1),
                 max_nfev=30000,
             )
             p_opt = res.x
@@ -65,7 +64,14 @@ def fit_params(
 
         else:  # pure r-space
             p_opt, p_cov = guess_X(
-                r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8
+                r,
+                rs,
+                X_exact,
+                model,
+                initial_guess,
+                gamma,
+                kFr0=0,
+                kFr1=4,  # (25 - rs) / 3
             )
 
         parameters[rs] = p_opt
@@ -93,7 +99,7 @@ def guess_X(r, rs, X_exact, model, initial_guess, gamma, kFr0=0, kFr1=8):
     return p_opt, p_cov
 
 
-def guess_X_moments(rs, initial_guess, n_residuals=(2,)):
+def guess_X_moments(rs, initial_guess, n_residuals=(2, 3)):
     res = least_squares(
         moment_residuals,
         x0=initial_guess,

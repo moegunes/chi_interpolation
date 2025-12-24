@@ -18,7 +18,7 @@ def X_r2_two_mode(r, rs, params, gamma, get_constraints=False):
     """
     r = np.asarray(r, float)
     alpha0, f0, phi0, alpha1, f1, phi1 = params
-    phi0, phi1 = np.mod(phi0, 2 * np.pi), np.mod(phi1, 2 * np.pi)
+    # phi0, phi1 = np.mod(phi0, 2 * np.pi), np.mod(phi1, 2 * np.pi)
     k0 = 2.0 * np.pi * f0
     k1 = 2.0 * np.pi * f1
 
