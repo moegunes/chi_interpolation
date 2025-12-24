@@ -136,7 +136,7 @@ def chi0_moment(n, rs):
     if n == 2:
         return 1 / (8 * np.pi**3 * kF**3)
     if n == 3:
-        return -1 / (4 * np.pi) * 5 / (6 * kF**2 * np.pi**3)
+        return -1 / (4 * np.pi) * 5 / (6 * kF**5 * np.pi**2)
 
 
 def K(n, rs):
