@@ -1,0 +1,72 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import scienceplots
+
+from input import q, r
+from optimization.fitting import guess_X
+from optimization.models import X_r2_two_mode
+from utils.physics import get_B, get_chi, get_gas_params
+
+plt.style.use(["science"])
+plt.rcParams["figure.dpi"] = 300
+
+
+rs = 1
+kF, n0, NF = get_gas_params(rs)
+factor = -6 * np.pi * n0 * NF
+
+B = get_B(rs)
+chiR = get_chi(q, rs)
+
+model = X_r2_two_mode
+gamma = 1
+kFr0 = 0
+kFr1 = 8
+
+initial_guess = [
+    1,
+    2 * kF / (2 * np.pi),
+    np.pi / 2,
+    0.3,
+    2 * kF / (2 * np.pi),
+    np.pi / 2 - 1e-4,
+]
+
+X_exact = (
+    chiR * (2 * kF * r) ** 4 / r
+    + B * 2 * kF * np.cos(2 * kF * r)
+    - B * np.sin(2 * kF * r) / r
+) / r ** (gamma - 1)
+
+p_opt, p_cov = guess_X(
+    r,
+    rs,
+    X_exact,
+    model=model,
+    initial_guess=initial_guess,
+    gamma=gamma,
+    kFr0=kFr0,
+    kFr1=kFr1,
+)
+
+X_guess = model(r, rs, p_opt, gamma)
+
+
+fig, ax = plt.subplots()
+
+ax.plot(kF * r[::10], X_exact[::10] / NF, "k-", label=r"$X(r)$")
+ax.plot(kF * r, X_guess / NF, "r-", label=r"fit, $M=2$")
+
+# plt.ylim(-10,20)
+ax.plot(kF * r, 0 * kF * r, "k", lw=0.5)
+
+lim_upper = max(X_exact / NF) * 1.03
+ax.set_ylim(-lim_upper / 3, lim_upper)
+ax.set_xlim(0, 12)
+ax.set_xlabel(r"$k_F r$")
+ax.set_title(rf"$r_s = {rs}$")
+
+ax.legend()
+plt.show()
+
+scienceplots

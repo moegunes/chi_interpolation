@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.optimize import curve_fit, least_squares
 
-from analysis.physics import get_B, get_chi
 from optimization.models import X_r2_two_mode, moment_residuals
 from utils.io import load_dict
+from utils.physics import get_B, get_chi
 
 
 def fit_params(

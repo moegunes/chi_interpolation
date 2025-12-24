@@ -1,5 +1,4 @@
 import numpy as np
-
 from analysis.physics import get_B
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from analysis.physics import I_n_m, K
+from utils.physics import I_n_m, K
 
 
 def X_r2_two_mode(r, rs, params, gamma, get_constraints=False):
