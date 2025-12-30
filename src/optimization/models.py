@@ -1,6 +1,6 @@
 import numpy as np
 
-from analysis.physics import I_n_cos, I_n_m, I_n_sin, K, get_B
+from analysis.physics import I_n_cos, I_n_m, I_n_sin, K
 
 
 def X_r2_two_mode_nl(r, rs, params, gamma, get_constraints=False):
@@ -21,12 +21,13 @@ def X_r2_two_mode_nl(r, rs, params, gamma, get_constraints=False):
     r = np.asarray(r, float)
 
     alpha0, f0, alpha1, f1 = params
+
+    alpha0, alpha1 = np.abs(alpha0), np.abs(alpha1)
     k0 = 2.0 * np.pi * f0
     k1 = 2.0 * np.pi * f1
 
     # ---- exact constraints ----
     # example: n = 1 and n = 0 (same as your original)
-    n = 1
 
     Mmat = np.array(
         [
@@ -149,7 +150,6 @@ def X_r2_two_mode_2(r, rs, params, gamma, get_constraints=False):
         sum B_m J_m      = 2 kF B
     """
     r = np.asarray(r, float)
-    B = get_B(rs)
     alpha0, f0, phi0, alpha1, f1, phi1 = params
     phi0, phi1 = np.mod(phi0, 2 * np.pi), np.mod(phi1, 2 * np.pi)
     k0 = 2.0 * np.pi * f0
