@@ -2,18 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi
 
-from analysis.modes import get_constraints
-from analysis.physics import get_chi, get_gas_params
 from optimization.production import get_chi_interp
 from utils.fourier import chi_q_from_chi_r_fast
-from utils.utils_chi import chi00q, corradini_pz
+from utils.physics import canon_cos_phase
+from utils.utils_chi import chi00q, corradini_pz, get_chi, get_gas_params
 
 
 def plot_parameters(params_dict):
     keys = list(params_dict.keys())
     rsl = [k for k in keys if isinstance(k, float)]
-    # rsl = rsl[4:]
     rsl.sort()
+    rsl = rsl[7:]
     font_size = 6
     marker_size = 2
     lww = 0.7
@@ -23,17 +22,21 @@ def plot_parameters(params_dict):
 
     B0l = []
     B1l = []
-    for j in range(2):
+    for j in range(3):
         coef1l = []
         coef2l = []
 
         for rs_i in range(len(rsl)):
             rs = rsl[rs_i]
-            mode1 = params_dict[rs][0:2]
-            mode2 = params_dict[rs][2:4]
+            mode1 = params_dict[rs][0:3]
+            mode2 = params_dict[rs][3:6]
             coef1, coef2 = mode1[j], mode2[j]
-            coef1l.append(coef1)
-            coef2l.append(coef2)
+            if j == 2:
+                coef1l.append(canon_cos_phase(np.mod(coef1, 2 * np.pi)))
+                coef2l.append(canon_cos_phase(np.mod(coef2, 2 * np.pi)))
+            else:
+                coef1l.append(coef1)
+                coef2l.append(coef2)
 
         ax[j].plot(rsl, coef1l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
         ax[j].plot(rsl, coef2l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
@@ -48,20 +51,13 @@ def plot_parameters(params_dict):
         elif j == 2:
             ax[j].set_ylabel(r"$\phi_m$", fontsize=font_size)
 
-    C0, D0, C1, D1 = get_constraints(params_dict, rsl)
+    B0l, B1l = get_constraints(params_dict, rsl)
 
-    ax[2].plot(rsl, C0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
-    ax[2].plot(rsl, C1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
-    # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
-    ax[2].legend(fontsize=font_size)
-    ax[2].set_ylabel(r"$C_m$", fontsize=font_size)
-    ax[2].tick_params(axis="both", labelsize=font_size)
-
-    ax[3].plot(rsl, D0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
-    ax[3].plot(rsl, D1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
+    ax[3].plot(rsl, B0l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
+    ax[3].plot(rsl, B1l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
     # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
     ax[3].legend(fontsize=font_size)
-    ax[3].set_ylabel(r"$D_m$", fontsize=font_size)
+    ax[3].set_ylabel(r"$A_m$", fontsize=font_size)
     ax[3].tick_params(axis="both", labelsize=font_size)
     # plt.plot(rsl,0*np.array(rsl)+np.pi/2)
     # plt.ylim(-.15,.15)
@@ -76,7 +72,7 @@ def plot_chi(r, q, params_dict, rs, error=False):
 
     kF, n0, NF = get_gas_params(rs)
     chiR = get_chi(q, rs)
-    chi_interpp = get_chi_interp(r, params_dict, rs)
+    chi_interpp = get_chi_interp(r, q, params_dict, rs)
     dr = r[1] - r[0]
     font_size = 8
 
@@ -95,12 +91,12 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].plot(
             kF * r[100::180],
             (chiR - chi_interpp)[100::180] / (2 * kF**4 / pi**3),
-            "r-",
+            "k-",
             markersize=1,
             label=r"$\chi_{M=2}^{h,\mathrm{interp.}}(r)$",
         )
         # ax[0].plot(kF*r[::180],np.abs((chiR-chi_interp)/chiR)[::180]*100,'ro',markersize=1,label=r'$\chi_{M=2}^{h,\mathrm{interp.}}(r)$')
-        ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.5)
+        ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.25)
         lim_upper = 0.0002  # max(chiR/(2*kF**4/pi**3))*.2
         ax[0].set_ylim(-lim_upper / 1, lim_upper)
         ax[0].set_xlim(0, 24)
@@ -109,12 +105,13 @@ def plot_chi(r, q, params_dict, rs, error=False):
         # ax[0].set_title(fr'$r_s = {rs}$',fontsize=font_size)
 
         # ax[1].plot(FT_q/kF,-np.abs(FT_chiq-chiq)/chiq*100,'r-.',label=r' $\chi^0(q)$ invFT',lw=1)
-        ax[1].plot(FT_q / kF, (chiq - FT_chiq) / NF, "r-.", lw=1)
+        ax[1].plot(FT_q / kF, (chiq - FT_chiq) / NF, "k-", lw=1)
 
         # error_qmc = 0.2577 / 2
         limy = max(abs(chiq - FT_chiq) / NF) * 1.2  # error_qmc*2
         # plt.axhspan(-error_qmc,error_qmc, xmax=10,color='grey', alpha=0.3)
         ax[1].set_ylim(-limy, limy)
+        ax[1].plot(FT_q / kF, 0 * FT_q, "k", lw=0.25)
         # ax[1].set_ylim(0,10)
         ax[1].set_xlim(0, 10)
         ax[1].set_xlabel(r"$q/k_F$", fontsize=font_size, labelpad=2)
@@ -160,3 +157,19 @@ def plot_chi(r, q, params_dict, rs, error=False):
     print(f"∫chi(r)r^2dr: {np.sum(chi_interpp * r**2) * dr:.6f}")
     # fig.subplots_adjust(hspace=1.4)
     fig.subplots_adjust(hspace=0.35, left=0.15, right=0.95, top=0.92, bottom=0.12)
+    plt.savefig(f"delta_chi-rs{rs}-error{error}.png", bbox_inches="tight", dpi=600)
+
+
+def get_constraints(params_dict, rslist):
+    model = params_dict["model"]
+    B0_list = []
+    B1_list = []
+
+    for rs in rslist:
+        p_opt = params_dict[rs]
+        B0, B1 = model(
+            r=0, rs=rs, params=p_opt, get_constraints=True
+        )  # r=0 is a dummy value
+        B0_list.append(B0)
+        B1_list.append(B1)
+    return np.array(B0_list), np.array(B1_list)
