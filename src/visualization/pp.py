@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi
 
-from analysis.physics import canon_cos_phase, get_chi, get_gas_params
 from optimization.production import get_chi_interp
 from utils.fourier import chi_q_from_chi_r_fast
+from utils.physics import canon_cos_phase, get_chi, get_gas_params
 from utils.utils_chi import chi00q, corradini_pz
 
 
@@ -91,12 +91,12 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].plot(
             kF * r[100::180],
             (chiR - chi_interpp)[100::180] / (2 * kF**4 / pi**3),
-            "r-",
+            "k-",
             markersize=1,
             label=r"$\chi_{M=2}^{h,\mathrm{interp.}}(r)$",
         )
         # ax[0].plot(kF*r[::180],np.abs((chiR-chi_interp)/chiR)[::180]*100,'ro',markersize=1,label=r'$\chi_{M=2}^{h,\mathrm{interp.}}(r)$')
-        ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.5)
+        ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.25)
         lim_upper = 0.0002  # max(chiR/(2*kF**4/pi**3))*.2
         ax[0].set_ylim(-lim_upper / 1, lim_upper)
         ax[0].set_xlim(0, 24)
@@ -105,8 +105,8 @@ def plot_chi(r, q, params_dict, rs, error=False):
         # ax[0].set_title(fr'$r_s = {rs}$',fontsize=font_size)
 
         # ax[1].plot(FT_q/kF,-np.abs(FT_chiq-chiq)/chiq*100,'r-.',label=r' $\chi^0(q)$ invFT',lw=1)
-        ax[1].plot(FT_q / kF, (chiq - FT_chiq) / NF, "r-.", lw=1)
-
+        ax[1].plot(FT_q / kF, (chiq - FT_chiq) / NF, "k-", lw=1)
+        ax[1].plot(FT_q / kF, 0 * FT_q, "k", lw=0.25)
         # error_qmc = 0.2577 / 2
         limy = max(abs(chiq - FT_chiq) / NF) * 1.2  # error_qmc*2
         # plt.axhspan(-error_qmc,error_qmc, xmax=10,color='grey', alpha=0.3)
@@ -156,6 +156,7 @@ def plot_chi(r, q, params_dict, rs, error=False):
     print(f"∫chi(r)r^2dr: {np.sum(chi_interpp * r**2) * dr:.6f}")
     # fig.subplots_adjust(hspace=1.4)
     fig.subplots_adjust(hspace=0.35, left=0.15, right=0.95, top=0.92, bottom=0.12)
+    plt.savefig(f"delta_chi-rs{rs}-error{error}.png", bbox_inches="tight", dpi=600)
 
 
 def get_constraints(params_dict, rslist):

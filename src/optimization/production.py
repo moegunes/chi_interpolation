@@ -1,5 +1,6 @@
 import numpy as np
-from analysis.physics import get_B
+
+from utils.physics import get_B
 
 
 def chi_interp(r, B, X, rs, gamma):

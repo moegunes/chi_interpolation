@@ -71,7 +71,7 @@ def fit_params(
                 initial_guess,
                 gamma,
                 kFr0=0,
-                kFr1=4,  # (25 - rs) / 3
+                kFr1=6,  # (25 - rs) / 3
             )
 
         parameters[rs] = p_opt
