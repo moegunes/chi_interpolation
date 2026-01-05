@@ -4,15 +4,14 @@ from numpy import pi
 
 from optimization.production import get_chi_interp
 from utils.fourier import chi_q_from_chi_r_fast
-from utils.physics import canon_cos_phase
 from utils.utils_chi import chi00q, corradini_pz, get_chi, get_gas_params
 
 
 def plot_parameters(params_dict):
     keys = list(params_dict.keys())
     rsl = [k for k in keys if isinstance(k, float)]
+    # rsl = rsl[4:]
     rsl.sort()
-    rsl = rsl[7:]
     font_size = 6
     marker_size = 2
     lww = 0.7
@@ -22,21 +21,17 @@ def plot_parameters(params_dict):
 
     B0l = []
     B1l = []
-    for j in range(3):
+    for j in range(2):
         coef1l = []
         coef2l = []
 
         for rs_i in range(len(rsl)):
             rs = rsl[rs_i]
-            mode1 = params_dict[rs][0:3]
-            mode2 = params_dict[rs][3:6]
+            mode1 = params_dict[rs][0:2]
+            mode2 = params_dict[rs][2:4]
             coef1, coef2 = mode1[j], mode2[j]
-            if j == 2:
-                coef1l.append(canon_cos_phase(np.mod(coef1, 2 * np.pi)))
-                coef2l.append(canon_cos_phase(np.mod(coef2, 2 * np.pi)))
-            else:
-                coef1l.append(coef1)
-                coef2l.append(coef2)
+            coef1l.append(coef1)
+            coef2l.append(coef2)
 
         ax[j].plot(rsl, coef1l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
         ax[j].plot(rsl, coef2l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
@@ -51,20 +46,26 @@ def plot_parameters(params_dict):
         elif j == 2:
             ax[j].set_ylabel(r"$\phi_m$", fontsize=font_size)
 
-    B0l, B1l = get_constraints(params_dict, rsl)
+    C0, D0, C1, D1 = get_constraints(params_dict, rsl)
 
-    ax[3].plot(rsl, B0l, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
-    ax[3].plot(rsl, B1l, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
+    ax[2].plot(rsl, C0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
+    ax[2].plot(rsl, C1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
+    # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
+    ax[2].legend(fontsize=font_size)
+    ax[2].set_ylabel(r"$C_m$", fontsize=font_size)
+    ax[2].tick_params(axis="both", labelsize=font_size)
+
+    ax[3].plot(rsl, D0, "k-o", label=r"$m=1$", lw=lww, markersize=marker_size)
+    ax[3].plot(rsl, D1, "r-o", label=r"$m=2$", lw=lww, markersize=marker_size)
     # ax[3].set_xlabel(r'$r_s$',fontsize=font_size)
     ax[3].legend(fontsize=font_size)
-    ax[3].set_ylabel(r"$A_m$", fontsize=font_size)
+    ax[3].set_ylabel(r"$D_m$", fontsize=font_size)
     ax[3].tick_params(axis="both", labelsize=font_size)
     # plt.plot(rsl,0*np.array(rsl)+np.pi/2)
     # plt.ylim(-.15,.15)
     fig.supxlabel(r"$r_s$", fontsize=font_size, y=0.04)
     fig.subplots_adjust(hspace=0.05, left=0.15, right=0.95, top=0.92, bottom=0.12)
     plt.legend(fontsize=font_size)
-    plt.savefig("parameters_best.png", bbox_inches="tight", dpi=600)
 
 
 def plot_chi(r, q, params_dict, rs, error=False):
@@ -162,14 +163,18 @@ def plot_chi(r, q, params_dict, rs, error=False):
 
 def get_constraints(params_dict, rslist):
     model = params_dict["model"]
-    B0_list = []
-    B1_list = []
+    C0_list = []
+    C1_list = []
+    D0_list = []
+    D1_list = []
 
     for rs in rslist:
         p_opt = params_dict[rs]
-        B0, B1 = model(
+        C0, D0, C1, D1 = model(
             r=0, rs=rs, params=p_opt, get_constraints=True
         )  # r=0 is a dummy value
-        B0_list.append(B0)
-        B1_list.append(B1)
-    return np.array(B0_list), np.array(B1_list)
+        C0_list.append(C0)
+        C1_list.append(C1)
+        D0_list.append(D0)
+        D1_list.append(D1)
+    return np.array(C0_list), np.array(D0_list), np.array(C1_list), np.array(D1_list)

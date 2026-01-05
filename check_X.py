@@ -24,10 +24,10 @@ kFr0 = 0
 kFr1 = 12
 
 initial_guess = [
-    1,
-    3 * kF / 2.0 / np.pi,
     0.5,
-    3 * kF / 2.0 / np.pi,
+    1 * kF / 2.0 / np.pi,
+    0.3,
+    1 * kF / 2.0 / np.pi,
 ]
 
 delta_chi_exact = -(chi0R - chiR) / factor

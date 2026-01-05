@@ -10,7 +10,7 @@ from utils.io import write_dict
 model = delta_chi_nl
 # gamma = 1
 
-rslist = np.arange(0.25, 10.25, 0.25)
+rslist = np.arange(0.25, 4.25, 0.25)
 inverse = 0
 
 print(f"Fitting X with {model.__name__}...")
