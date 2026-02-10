@@ -4,6 +4,16 @@ from numpy import pi, sqrt
 from utils.fourier import chi_r_from_chi_q_fast
 
 
+def get_pi(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    fxc = corradini_pz(rs, q)
+
+    piq = (chi0q ** (-1) - fxc) ** (-1)
+    piR = chi_r_from_chi_q_fast(q, piq)[1]
+
+    return piR
+
+
 def get_chi(q, rs):
     chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
     fxc = corradini_pz(rs, q)

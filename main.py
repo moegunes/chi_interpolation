@@ -10,7 +10,7 @@ from utils.io import write_dict
 model = X_r2_two_mode
 gamma = 2
 
-rslist = np.arange(1, 10.25, 0.25)
+rslist = np.arange(0.25, 10.25, 0.25)
 inverse = 0
 fit_residue = False  # options: False, 'moment', 'hybrid'
 

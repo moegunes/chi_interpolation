@@ -3,7 +3,8 @@ from scipy.optimize import curve_fit, least_squares
 
 from optimization.models import X_r2_two_mode, moment_residuals
 from utils.io import load_dict
-from utils.physics import get_B, get_chi
+from utils.physics import get_B
+from utils.utils_chi import get_pi
 
 
 def fit_params(
@@ -20,11 +21,11 @@ def fit_params(
     for idx_rs in tqdm(range(len(rslist)), desc="Fitting", ncols=80):
         rs = rslist[idx_rs]
         kF = (9 * np.pi / 4) ** (1 / 3) / rs
-        chiR = get_chi(q, rs)
+        piR = get_pi(q, rs)
         B = get_B(rs)
 
         X_exact = (
-            chiR * (2 * kF * r) ** 4 / r
+            piR * (2 * kF * r) ** 4 / r
             + B * 2 * kF * np.cos(2 * kF * r)
             - B * np.sin(2 * kF * r) / r
         ) / r ** (gamma - 1)
