@@ -59,7 +59,7 @@ def chi_moment(n, rs):
     if n == 1:
         return 3 / (8 * np.pi**2)
     if n == 2:
-        return 15 / (16 * np.pi * kF) + 15 * f0 / (16 * np.pi**3)
+        return 15 / (8 * np.pi * kF) + 15 * f0 / (8 * np.pi**3)
     if n == 3:
 
         def f1_corradini(rs, dq):
