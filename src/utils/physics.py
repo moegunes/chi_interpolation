@@ -82,6 +82,88 @@ def chi_moment(n, rs):
         return -1 / (4 * np.pi) * 7 * der
 
 
+def pi_moment(n, rs):
+    kF = (9 * np.pi / 4) ** (1 / 3) / rs
+
+    # f0 = f_xc(0)
+    f0 = corradini_pz(rs, 0.0)
+
+    def f2_corradini(rs, dq):
+        q = np.array([-dq, 0.0, dq])
+        fvals = corradini_pz(rs, q)
+        fpp = (fvals[2] - 2 * fvals[1] + fvals[0]) / dq**2
+        return 0.5 * fpp
+
+    def f4_corradini(rs, dq):
+        q = np.array([-2 * dq, -dq, 0.0, dq, 2 * dq])
+        fvals = corradini_pz(rs, q)
+
+        f4_raw = (
+            fvals[0] - 4 * fvals[1] + 6 * fvals[2] - 4 * fvals[3] + fvals[4]
+        ) / dq**4
+
+        return f4_raw / 24.0
+
+    def f6_corradini(rs, dq):
+        q = np.array([-3 * dq, -2 * dq, -dq, 0.0, dq, 2 * dq, 3 * dq])
+        fvals = corradini_pz(rs, q)
+
+        f6_raw = (
+            -fvals[0]
+            + 6 * fvals[1]
+            - 15 * fvals[2]
+            + 20 * fvals[3]
+            - 15 * fvals[4]
+            + 6 * fvals[5]
+            - fvals[6]
+        ) / dq**6
+
+        return f6_raw / 720.0  # divide by 6!
+
+    f2 = f2_corradini(rs, 1e-3)
+    f4 = f4_corradini(rs, 1e-3)
+    f6 = f6_corradini(rs, 1e-3)
+
+    denom = f0 * kF + np.pi**2
+
+    if n == 0:
+        return -kF / (4 * np.pi * denom)
+
+    if n == 1:
+        return -(12 * f2 * kF**3 + np.pi**2) / (8 * kF * np.pi * denom**2)
+
+    if n == 2:
+        numerator = (
+            -720 * (f2**2 - f0 * f4) * kF**6
+            + 8 * kF * (f0 - 15 * f2 * kF**2 + 90 * f4 * kF**4) * np.pi**2
+            + 3 * np.pi**4
+        )
+
+        return numerator / (24 * kF**3 * np.pi * denom**3)
+
+    if n == 3:
+        numerator = (
+            60480 * (f2**3 - 2 * f0 * f2 * f4 + f0**2 * f6) * kF**9
+            + 3
+            * kF**2
+            * (
+                29 * f0**2
+                + 5040 * f2 * kF**4 * (f2 - 8 * f4 * kF**2)
+                - 224 * f0 * (2 * f2 * kF**2 + 15 * kF**4 * (f4 - 12 * f6 * kF**2))
+            )
+            * np.pi**2
+            + 2
+            * kF
+            * (31 * f0 - 42 * kF**2 * (f2 + 120 * kF**2 * (f4 - 6 * f6 * kF**2)))
+            * np.pi**4
+            + 10 * np.pi**6
+        )
+
+        return -numerator / (48 * kF**5 * np.pi * denom**4)
+
+    raise ValueError("n must be 0,1,2,3")
+
+
 def chi0_moment(n, rs):
     kF = (9 * np.pi / 4) ** (1 / 3) / rs
     if n == 0:
@@ -104,7 +186,7 @@ def K(n, rs):
 def delta_C(n, rs):
     kF, n0, NF = get_gas_params(rs)
     factor = -6 * np.pi * n0 * NF
-    return (chi_moment(n, rs) - chi0_moment(n, rs)) / factor
+    return (pi_moment(n, rs) - chi0_moment(n, rs)) / factor
 
 
 def get_B(rs):

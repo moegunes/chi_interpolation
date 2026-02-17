@@ -2,17 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import pi
 
-from optimization.production import get_chi_interp
+from optimization.production import get_pi_interp
 from utils.fourier import chi_q_from_chi_r_fast
 from utils.physics import canon_cos_phase
-from utils.utils_chi import chi00q, corradini_pz, get_chi, get_gas_params
+from utils.utils_chi import chi00q, corradini_pz, get_gas_params, get_pi
 
 
 def plot_parameters(params_dict):
     keys = list(params_dict.keys())
     rsl = [k for k in keys if isinstance(k, float)]
     rsl.sort()
-    rsl = rsl[7:]
+    # rsl = rsl[7:]
     font_size = 6
     marker_size = 2
     lww = 0.7
@@ -71,8 +71,8 @@ def plot_chi(r, q, params_dict, rs, error=False):
     from matplotlib.ticker import ScalarFormatter
 
     kF, n0, NF = get_gas_params(rs)
-    chiR = get_chi(q, rs)
-    chi_interpp = get_chi_interp(r, q, params_dict, rs)
+    piR = get_pi(q, rs)
+    pi_interpp = get_pi_interp(r, q, params_dict, rs)
     dr = r[1] - r[0]
     font_size = 8
 
@@ -82,18 +82,18 @@ def plot_chi(r, q, params_dict, rs, error=False):
     vc = 4 * np.pi / q**2
 
     chi0q = chi00q(q, rs)
-    chiq = chi0q / (1 - chi0q * (vc + fxc))
+    piq = chi0q / (1 - chi0q * fxc)
 
-    FT_q, FT_chiq = chi_q_from_chi_r_fast(r, chi_interpp, qlist=None)
+    FT_q, FT_chiq = chi_q_from_chi_r_fast(r, pi_interpp, qlist=None)
 
     if error:
         # ax[0].plot(kF*r[::10],chiR[::10]/NF,'k-',label=r'$\chi^h(r)$')
         ax[0].plot(
             kF * r[100::180],
-            (chiR - chi_interpp)[100::180] / (2 * kF**4 / pi**3),
+            (piR - pi_interpp)[100::180] / (2 * kF**4 / pi**3),
             "k-",
             markersize=1,
-            label=r"$\chi_{M=2}^{h,\mathrm{interp.}}(r)$",
+            label=r"$\Pi_{M=2}^{h,\mathrm{interp.}}(r)$",
         )
         # ax[0].plot(kF*r[::180],np.abs((chiR-chi_interp)/chiR)[::180]*100,'ro',markersize=1,label=r'$\chi_{M=2}^{h,\mathrm{interp.}}(r)$')
         ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.25)
@@ -101,40 +101,40 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].set_ylim(-lim_upper / 1, lim_upper)
         ax[0].set_xlim(0, 24)
         ax[0].set_xlabel(r"$k_F r$", fontsize=font_size, labelpad=2)
-        ax[0].set_ylabel(r"$\Delta\chi(r)/6\pi n_0 N_\mathrm{F}$", fontsize=font_size)
+        ax[0].set_ylabel(r"$\Delta\Pi(r)/6\pi n_0 N_\mathrm{F}$", fontsize=font_size)
         # ax[0].set_title(fr'$r_s = {rs}$',fontsize=font_size)
 
         # ax[1].plot(FT_q/kF,-np.abs(FT_chiq-chiq)/chiq*100,'r-.',label=r' $\chi^0(q)$ invFT',lw=1)
-        ax[1].plot(FT_q / kF, (chiq - FT_chiq) / NF, "k-", lw=1)
+        ax[1].plot(FT_q / kF, (piq - FT_chiq) / NF, "k-", lw=1)
 
         # error_qmc = 0.2577 / 2
-        limy = max(abs(chiq - FT_chiq) / NF) * 1.2  # error_qmc*2
+        limy = max(abs(piq - FT_chiq) / NF) * 1.2  # error_qmc*2
         # plt.axhspan(-error_qmc,error_qmc, xmax=10,color='grey', alpha=0.3)
         ax[1].set_ylim(-limy, limy)
         ax[1].plot(FT_q / kF, 0 * FT_q, "k", lw=0.25)
         # ax[1].set_ylim(0,10)
         ax[1].set_xlim(0, 10)
         ax[1].set_xlabel(r"$q/k_F$", fontsize=font_size, labelpad=2)
-        ax[1].set_ylabel(r"$\Delta\chi(q)/N_\mathrm{F}$", fontsize=font_size)
+        ax[1].set_ylabel(r"$\Delta\Pi(q)/N_\mathrm{F}$", fontsize=font_size)
         # ax[1].set_title(fr'$r_s = {rs}$')
         # ax[1].legend(fontsize=font_size)
     else:
         ax[0].plot(
-            kF * r[::10], chiR[::10] / (2 * kF**4 / pi**3), "k-", label=r"$\chi^h(r)$"
+            kF * r[::10], piR[::10] / (2 * kF**4 / pi**3), "k-", label=r"$\Pi^h(r)$"
         )
         ax[0].plot(
             kF * r[::180],
-            chi_interpp[::180] / (2 * kF**4 / pi**3),
+            pi_interpp[::180] / (2 * kF**4 / pi**3),
             "r-.",
             markersize=1,
-            label=r"$\chi_{M=2}^{h,\mathrm{interp.}}(r)$",
+            label=r"$\Pi_{M=2}^{h,\mathrm{interp.}}(r)$",
         )
         ax[0].plot(kF * r, 0 * kF * r, "k", lw=0.5)
-        lim_upper = max(chiR / (2 * kF**4 / pi**3)) * 1.2
+        lim_upper = max(piR / (2 * kF**4 / pi**3)) * 1.2
         ax[0].set_ylim(-lim_upper / 1, lim_upper)
         ax[0].set_xlim(0, 12)
         ax[0].set_xlabel(r"$k_F r$", fontsize=font_size, labelpad=2)
-        ax[0].set_ylabel(r"$\chi(r)/6\pi n_0 N_\mathrm{F}$", fontsize=font_size)
+        ax[0].set_ylabel(r"$\Pi(r)/6\pi n_0 N_\mathrm{F}$", fontsize=font_size)
         # ax[0].set_title(fr'$r_s = {rs}$',fontsize=font_size)
         ax[0].legend(loc="lower right", fontsize=font_size)
         ax[0].tick_params(axis="both", labelsize=font_size)
@@ -145,19 +145,19 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].yaxis.set_major_formatter(formatter)
         ax[0].ticklabel_format(axis="y", style="sci", scilimits=(-1, -1))
 
-        ax[1].plot(q / kF, -chiq / NF, "k", label=r" $\chi(q)$ analytical", lw=1)
-        ax[1].plot(FT_q / kF, -FT_chiq / NF, "r-.", label=r" $\chi(q)$ invFT", lw=1)
+        ax[1].plot(q / kF, -piq / NF, "k", label=r" $\Pi(q)$ analytical", lw=1)
+        ax[1].plot(FT_q / kF, -FT_chiq / NF, "r-.", label=r" $\Pi(q)$ invFT", lw=1)
         ax[1].set_xlim(0, 10)
         ax[1].set_xlabel(r"$q/k_F$", fontsize=font_size, labelpad=2)
-        ax[1].set_ylabel(r"$-\chi(q)/N_\mathrm{F}$", fontsize=font_size)
+        ax[1].set_ylabel(r"$-\Pi(q)/N_\mathrm{F}$", fontsize=font_size)
         # ax[1].set_title(fr'$r_s = {rs}$')
         ax[1].legend(fontsize=font_size)
         ax[1].tick_params(axis="both", labelsize=font_size)
 
-    print(f"∫chi(r)r^2dr: {np.sum(chi_interpp * r**2) * dr:.6f}")
+    print(f"∫Pi(r)r^2dr: {np.sum(pi_interpp * r**2) * dr:.6f}")
     # fig.subplots_adjust(hspace=1.4)
     fig.subplots_adjust(hspace=0.35, left=0.15, right=0.95, top=0.92, bottom=0.12)
-    plt.savefig(f"delta_chi-rs{rs}-error{error}.png", bbox_inches="tight", dpi=600)
+    plt.savefig(f"delta_pi-rs{rs}-error{error}.png", bbox_inches="tight", dpi=600)
 
 
 def get_constraints(params_dict, rslist):

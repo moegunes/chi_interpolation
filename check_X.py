@@ -5,23 +5,63 @@ import scienceplots
 
 from input import q, r
 from optimization.fitting import guess_X
-from optimization.models import delta_chi
+from optimization.models import delta_pi
+from utils.fourier import chi_q_from_chi_r_fast
 from utils.physics import get_B
-from utils.utils_chi import get_chi, get_chi02, get_gas_params
+from utils.utils_chi import (
+    G_Moroni,
+    chi00q,
+    corradini_pz,
+    get_chi,
+    get_chi02,
+    get_gas_params,
+    get_pi,
+)
 
 plt.style.use(["science"])
 plt.rcParams["figure.dpi"] = 300
-rs = 10
+rs = 0.01
+kF, n0, NF = get_gas_params(rs)
+
+chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+vc = 4 * np.pi / q**2
+fxc = corradini_pz(rs, q)
+piq = chi0q / (1 - chi0q * fxc)
+chiq = chi0q / (1 - chi0q * (vc + fxc))
+chirpaq = chi0q / (1 - chi0q * vc)
+piq2 = chiq / (1 + chiq * vc)
+
+fig, ax = plt.subplots()
+
+ax.plot(q / kF, -chiq / NF, "k", label=r" $\chi^0(q)$", lw=1)
+ax.plot(q / kF, -chirpaq / NF, "k--", label=r" $\chi^{\mathrm{RPA}}(q)$", lw=1)
+# ax.plot(q / kF,-piq / NF,"r-",label=r" $\Pi(q)$ ",lw=1)
+# ax.plot(q / kF, -chi0q / NF, "k-.", label=r" $\chi^0(q)$ Lindhard", lw=1)
+# ax.plot(q / kF, -piq2 / NF, "b-.", label=r" $\Pi_2(q)$", lw=1)
+# ax.plot(q / kF, (1 - chi0q * fxc), "k-", label=r" $f_{xc}(q)$", lw=1)
+# ax.plot(q / kF, 0 * q / kF, "k--", label=r" $f_{xc}(q) = 0$", lw=1)
+ax.set_xlim(0, 4)
+
+# %%
+import matplotlib.pyplot as plt
+
+from input import q
+from utils.utils_chi import get_gas_params
+
+plt.style.use(["science"])
+plt.rcParams["figure.dpi"] = 300
+rs = 5.2
 kF, n0, NF = get_gas_params(rs)
 factor = -6 * np.pi * n0 * NF
 
 B = get_B(rs)
+piR = get_pi(q, rs)
 chiR = get_chi(q, rs)
 chi0R = get_chi02(q, rs)
 
-model = delta_chi
+model = delta_pi
 kFr0 = 0
-kFr1 = 8
+kFr1 = 6
 
 initial_guess = [
     1,
@@ -33,8 +73,9 @@ initial_guess = [
 ]
 
 delta_chi_exact = -(chi0R - chiR) / factor
+delta_pi_exact = -(chi0R - piR) / factor
 
-
+"""
 p_opt, p_cov = guess_X(
     r,
     rs,
@@ -46,17 +87,19 @@ p_opt, p_cov = guess_X(
 )
 
 delta_chi_guess = model(r, rs, p_opt)
-
+"""
 
 fig, ax = plt.subplots()
 
-ax.plot(kF * r[::10], delta_chi_exact[::10], "k-", label=r"$X(r)$")
-ax.plot(kF * r, delta_chi_guess, "r-", label=r"fit, $M=2$")
+ax.plot(kF * r[::10], -chi0R[::10] / factor, "k-.", label=r"$\chi_0(r)$")
+ax.plot(kF * r[::10], -piR[::10] / factor, "r-", label=r"$\Pi(r)$")
+ax.plot(kF * r[::10], -chiR[::10] / factor, "k-", label=r"$\chi(r)$")
+# ax.plot(kF * r, delta_chi_guess, "r-", label=r"fit, $M=2$")
 
 # plt.ylim(-10,20)
 ax.plot(kF * r, 0 * kF * r, "k", lw=0.5)
 
-lim_upper = 0.08  # max(-delta_chi_exact / factor) * 3.03
+lim_upper = max(-piR / factor)  # max(-delta_chi_exact / factor) * 3.03
 ax.set_ylim(-lim_upper, lim_upper)
 ax.set_xlim(0, 12)
 ax.set_xlabel(r"$k_F r$")
@@ -71,8 +114,7 @@ scienceplots
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.fourier import chi_q_from_chi_r_fast
-from utils.utils_chi import G_Moroni, chi00q, corradini_pz, get_chi
+from utils.utils_chi import chi00q, corradini_pz, get_chi
 
 chi_reconstructed = chi0R - 6 * np.pi * n0 * NF * delta_chi_guess
 
@@ -105,7 +147,7 @@ import numpy as np
 import scienceplots
 
 from input import q, r
-from optimization.fitting import exponential_cutoff_match, guess_X
+from optimization.fitting import exponential_cutoff_match
 from optimization.models import X_r2_two_mode
 from utils.physics import get_B, get_chi, get_chi0, get_gas_params
 

@@ -14,6 +14,7 @@ __pycache__/
 *.pkl
 results/
 output/
+paper/
 *.png
 # Slurm
 *.out

@@ -1,12 +1,12 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-from optimization.models import delta_chi
+from optimization.models import delta_pi
 from utils.io import load_dict
-from utils.utils_chi import get_chi, get_chi02, get_gas_params
+from utils.utils_chi import get_chi02, get_gas_params, get_pi
 
 
-def fit_params(rslist, q, r, model=delta_chi, inverse=False):
+def fit_params(rslist, q, r, model=delta_pi, inverse=False):
     from tqdm import tqdm
 
     parameters = {}
@@ -18,10 +18,10 @@ def fit_params(rslist, q, r, model=delta_chi, inverse=False):
         rs = rslist[idx_rs]
         kF, n0, NF = get_gas_params(rs)
         factor = -6 * np.pi * n0 * NF
-        chiR = get_chi(q, rs)
+        piR = get_pi(q, rs)
         chi0R = get_chi02(q, rs)
 
-        delta_chi_exact = -(chi0R - chiR) / factor
+        delta_chi_exact = -(chi0R - piR) / factor
 
         if idx_rs == 0:
             if inverse:
@@ -30,15 +30,15 @@ def fit_params(rslist, q, r, model=delta_chi, inverse=False):
                     'Inverse fit: using parameters from "parameters" as initial guess. rs = ',
                     10,
                 )
-                initial_guess = params_temp[10]
+                initial_guess = params_temp[5]
             else:
                 initial_guess = [
-                    0.5,
+                    1,
                     2 * kF / 2.0 / np.pi,
                     np.pi / 2 - 0.1,
-                    1,
-                    -1 * kF / 2.0 / np.pi,
-                    0.01,
+                    0.5,
+                    2 * kF / 2.0 / np.pi,
+                    np.pi / 2 + 0.1,
                 ]
         else:
             initial_guess = parameters[rslist[idx_rs - 1]]
@@ -50,7 +50,7 @@ def fit_params(rslist, q, r, model=delta_chi, inverse=False):
             model,
             initial_guess,
             kFr0=0,
-            kFr1=8,
+            kFr1=6,
         )
 
         parameters[rs] = p_opt
