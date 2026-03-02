@@ -21,6 +21,16 @@ def get_chi(q, rs):
     return chiR
 
 
+def get_chiq(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    fxc = corradini_pz(rs, q)
+    vc = 4 * np.pi / q**2
+
+    chiq = chi0q / (1 - chi0q * (vc + fxc))
+
+    return chiq
+
+
 def get_gas_params(rs):
     n0 = 1.0 / (rs**3.0 * 4.0 * np.pi / 3.0)
     kF = (3 * np.pi**2 * n0) ** (1 / 3)
