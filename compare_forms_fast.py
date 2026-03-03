@@ -54,7 +54,7 @@ def eval_form_map(fm, params_dict, rs_test, r_eval, orig_dchi):
         dchi_orig = orig_dchi[rs]
 
         # Normalized error: |factor * (dchi_interp - dchi_orig)| / NF
-        diff = np.abs(factor * (dchi_interp - dchi_orig)) / NF
+        diff = np.abs((dchi_interp - dchi_orig)) / factor
 
         # Restrict to kF*r < 15
         mask = kF * r_eval < 15
