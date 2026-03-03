@@ -28,6 +28,13 @@ def J_n_m(n, k, gamma, phi):
     )
 
 
+def J_n_m_kFr(n, k, gamma, phi, kF):
+    """Integral I_n^m = \int_0^\infty r^(2n+2) exp(-\gamma r) cos(kr + \phi) dr. Equivalent to function J_n^m in ..."""
+    return math.factorial(2 * n + 2) * np.real(
+        np.exp(1j * phi) / (gamma - 1j * k) ** (2 * n + 3) / kF ** (2 * n + 3)
+    )
+
+
 def compute_A_B(n, k, gamma):
     """Compute A_n(k, gamma) and B_n(k, gamma) explicitly."""
     A = 0.0

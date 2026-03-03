@@ -8,10 +8,11 @@ from optimization.models import delta_pi
 from utils.io import write_dict
 
 model = delta_pi
-# gamma = 1s
 
-rslist = np.arange(0.01, 5.25, 0.25)
-inverse = 1
+rslist = np.concatenate([np.arange(0.2, 2.0, 0.1), np.arange(2.0, 10.2, 0.25)])
+# rslist = np.arange(0.25, 10.25, 0.25)
+# rslist = np.arange(2, 10.25, 0.25)
+inverse = 0
 
 print(f"Fitting X with {model.__name__}...")
 start_time = time.time()

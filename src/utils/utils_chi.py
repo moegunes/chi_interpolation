@@ -20,6 +20,14 @@ def get_pi(q, rs):
     return piR
 
 
+def get_piq(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    fxc = corradini_pz(rs, q)
+
+    piq = chi0q / (1 - chi0q * fxc)
+    return piq
+
+
 def get_chi(q, rs):
     chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
     fxc = corradini_pz(rs, q)
