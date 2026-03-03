@@ -27,6 +27,7 @@ output/
 # OS
 .DS_Store
 
+CLAUDE_OPUSE_PROMPT.md
 # Latex
 
 paper/*.aux

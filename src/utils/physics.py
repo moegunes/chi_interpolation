@@ -3,46 +3,7 @@ import math
 import numpy as np
 
 from utils.io import load_dict
-from utils.utils_chi import G_Moroni, corradini_pz, get_chi
-
-
-class ElectronGas:
-    def __init__(self, rs):
-        self.rs = rs
-        self.kF, self.n0, self.NF = get_gas_params(rs)
-        self.factor = 6 * np.pi * self.n0 * self.NF
-        self.qmax = 20000
-        self.dq = 0.01
-        self.q, self.r = self._get_qr()
-        self.chiR = get_chi(self.q, rs)
-        self.chi0R = self._get_chi0()
-
-    def _get_chi0(self):
-        r = self.r
-        kF = self.kF
-        factor = self.factor
-        chi0R = (
-            -factor
-            * (np.sin(2 * kF * (r)) - 2 * kF * r * np.cos(2 * kF * (r)))
-            / (2 * kF * (r + 1e-15)) ** 4
-        )
-        return chi0R
-
-    def _get_qr(self):
-        from utils.utils_chi import chi00q, chi_r_from_chi_q_fast
-
-        rs = self.rs
-
-        qmax = self.qmax
-        dq = self.dq
-        q = np.arange(
-            0.0, qmax + dq / 2, dq
-        )  # starts at 0; code will drop q=0 internally
-        chi0 = chi00q(q, rs)
-
-        # Get \chi(r) on the fast-transform’s dual grid:
-        r = chi_r_from_chi_q_fast(q, chi0)[0]
-        return q, r
+from utils.utils_chi import G_Moroni, corradini_pz
 
 
 def get_gas_params(rs):
@@ -58,6 +19,20 @@ def I_n_m(n, k, gamma, phi):
     A, B = compute_A_B(n, k, gamma)
     Lambda = math.factorial(2 * n + 1) / (gamma**2 + k**2) ** (2 * n + 2)
     return Lambda * (A * np.cos(phi) - B * np.sin(phi))
+
+
+def J_n_m(n, k, gamma, phi):
+    """Integral I_n^m = \int_0^\infty r^(2n+2) exp(-\gamma r) cos(kr + \phi) dr. Equivalent to function J_n^m in ..."""
+    return math.factorial(2 * n + 2) * np.real(
+        np.exp(1j * phi) / (gamma - 1j * k) ** (2 * n + 3)
+    )
+
+
+def J_n_m_kFr(n, k, gamma, phi, kF):
+    """Integral I_n^m = \int_0^\infty r^(2n+2) exp(-\gamma r) cos(kr + \phi) dr. Equivalent to function J_n^m in ..."""
+    return math.factorial(2 * n + 2) * np.real(
+        np.exp(1j * phi) / (gamma - 1j * k) ** (2 * n + 3) / kF ** (2 * n + 3)
+    )
 
 
 def compute_A_B(n, k, gamma):
@@ -91,7 +66,7 @@ def chi_moment(n, rs):
     if n == 1:
         return 3 / (8 * np.pi**2)
     if n == 2:
-        return 15 / (16 * np.pi * kF) + 15 * f0 / (16 * np.pi**3)
+        return 15 / (8 * np.pi * kF) + 15 * f0 / (8 * np.pi**3)
     if n == 3:
 
         def f1_corradini(rs, dq):
@@ -131,6 +106,12 @@ def K(n, rs):
     kF, n0, NF = get_gas_params(rs)
     factor = -6 * np.pi * n0 * NF
     return 16 * kF**4 * (chi_moment(n, rs) - B / factor * chi0_moment(n, rs))
+
+
+def delta_C(n, rs):
+    kF, n0, NF = get_gas_params(rs)
+    factor = -6 * np.pi * n0 * NF
+    return (chi_moment(n, rs) - chi0_moment(n, rs)) / factor
 
 
 def get_B(rs):

@@ -4,6 +4,12 @@ from numpy import pi, sqrt
 from utils.fourier import chi_r_from_chi_q_fast
 
 
+def get_chi02(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    chiR = chi_r_from_chi_q_fast(q, chi0q)[1]
+    return chiR
+
+
 def get_chi(q, rs):
     chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
     fxc = corradini_pz(rs, q)
@@ -13,6 +19,34 @@ def get_chi(q, rs):
     chiR = chi_r_from_chi_q_fast(q, chiq)[1]
 
     return chiR
+
+
+def get_chiq(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    fxc = corradini_pz(rs, q)
+    vc = 4 * np.pi / q**2
+
+    chiq = chi0q / (1 - chi0q * (vc + fxc))
+
+    return chiq
+
+
+def get_gas_params(rs):
+    n0 = 1.0 / (rs**3.0 * 4.0 * np.pi / 3.0)
+    kF = (3 * np.pi**2 * n0) ** (1 / 3)
+    NF = kF / (1 * np.pi**2)
+    return kF, n0, NF
+
+
+def get_chi0(r, rs):
+    kF, n0, NF = get_gas_params(rs)
+    factor = -6 * np.pi * n0 * NF
+    chi0R = (
+        factor
+        * (np.sin(2 * kF * (r)) - 2 * kF * r * np.cos(2 * kF * (r)))
+        / (2 * kF * (r + 1e-15)) ** 4
+    )
+    return chi0R
 
 
 def chi00q(q, rs):  # one spin
