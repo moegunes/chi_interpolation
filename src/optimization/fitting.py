@@ -62,11 +62,11 @@ def _physics_initial_guess(rs):
     kF = (9 * np.pi / 4) ** (1 / 3) / rs
     return np.array(
         [
-            1 / kF,
-            2 / 2.0 / np.pi,
+            1.5 / kF,
+            3 / 2.0 / np.pi,
             np.pi / 2 - 0.1,
-            0.5 / kF,
-            2 / 2.0 / np.pi,
+            1 / kF,
+            -1 / 2.0 / np.pi,
             np.pi / 2 + 0.1,
         ]
     )

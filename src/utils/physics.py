@@ -90,7 +90,14 @@ def chi_moment(n, rs):
 
 
 def pi_moment(n, rs):
+    """Moments C_n of Pi(q) = chi0/(1 - chi0*(vc_kappa + fxc)).
+
+    Uses the screened Coulomb kernel vc = 4pi/(q^2 + kappa^2).
+    Formulas derived from Taylor-expanding Pi(q) around q=0
+    (Mathematica CAS, see pi_moments.md).
+    """
     kF = (9 * np.pi / 4) ** (1 / 3) / rs
+    kappa = 0.0225
 
     # f0 = f_xc(0)
     f0 = corradini_pz(rs, 0.0)
@@ -131,42 +138,101 @@ def pi_moment(n, rs):
     f4 = f4_corradini(rs, 1e-3)
     f6 = f6_corradini(rs, 1e-3)
 
-    denom = f0 * kF + np.pi**2
+    pi_ = np.pi
+    K = kappa  # shorthand
+
+    # Common denominator base: D = 4*kF*pi + (f0*kF + pi^2)*K^2
+    D = 4 * kF * pi_ + (f0 * kF + pi_**2) * K**2
 
     if n == 0:
-        return -kF / (4 * np.pi * denom)
+        return -kF * K**2 / (4 * pi_ * D)
 
     if n == 1:
-        return -(12 * f2 * kF**3 + np.pi**2) / (8 * kF * np.pi * denom**2)
+        num = -(pi_**2 * K**4 + 12 * kF**3 * (-4 * pi_ + f2 * K**4))
+        return num / (8 * kF * pi_ * D**2)
 
     if n == 2:
-        numerator = (
-            -720 * (f2**2 - f0 * f4) * kF**6
-            + 8 * kF * (f0 - 15 * f2 * kF**2 + 90 * f4 * kF**4) * np.pi**2
-            + 3 * np.pi**4
+        num = (
+            2880 * kF**5 * pi_ * (f0 * kF + pi_**2)
+            + 480 * kF**3 * pi_ * (12 * f2 * kF**3 + pi_**2) * K**2
+            + 32 * kF * pi_ * (90 * f4 * kF**5 + pi_**2) * K**4
+            + (
+                -720 * (f2**2 - f0 * f4) * kF**6
+                + 8 * kF * (f0 - 15 * f2 * kF**2 + 90 * f4 * kF**4) * pi_**2
+                + 3 * pi_**4
+            )
+            * K**6
         )
-
-        return numerator / (24 * kF**3 * np.pi * denom**3)
+        return num / (24 * kF**3 * pi_ * D**3)
 
     if n == 3:
-        numerator = (
-            60480 * (f2**3 - 2 * f0 * f2 * f4 + f0**2 * f6) * kF**9
-            + 3
-            * kF**2
+        num = (
+            80640
+            * kF**6
+            * pi_
             * (
-                29 * f0**2
-                + 5040 * f2 * kF**4 * (f2 - 8 * f4 * kF**2)
-                - 224 * f0 * (2 * f2 * kF**2 + 15 * kF**4 * (f4 - 12 * f6 * kF**2))
+                -3 * f0**2 * kF**3
+                + 12 * f2 * kF**3 * pi_
+                - 6 * f0 * kF**2 * pi_**2
+                + pi_**3
+                - 3 * kF * pi_**4
             )
-            * np.pi**2
-            + 2
+            - 2688
+            * kF**4
+            * pi_
+            * (
+                180 * f0 * f2 * kF**5
+                - 720 * f4 * kF**5 * pi_
+                + 15 * kF**2 * (f0 + 12 * f2 * kF**2) * pi_**2
+                - 8 * pi_**3
+                + 15 * kF * pi_**4
+            )
+            * K**2
+            + 48
+            * kF**2
+            * pi_
+            * (
+                5040 * (-3 * f2**2 + 2 * f0 * f4) * kF**7
+                + 20160 * f6 * kF**7 * pi_
+                + 56 * kF**2 * (2 * f0 - 45 * kF**2 * (f2 - 4 * f4 * kF**2)) * pi_**2
+                + 29 * pi_**3
+                + 7 * kF * pi_**4
+            )
+            * K**4
+            + 8
             * kF
-            * (31 * f0 - 42 * kF**2 * (f2 + 120 * kF**2 * (f4 - 6 * f6 * kF**2)))
-            * np.pi**4
-            + 10 * np.pi**6
+            * pi_
+            * (
+                60480 * (-f2 * f4 + f0 * f6) * kF**8
+                + 3
+                * kF
+                * (
+                    29 * f0
+                    - 112 * (2 * f2 * kF**2 + 15 * kF**4 * (f4 - 12 * f6 * kF**2))
+                )
+                * pi_**2
+                + 31 * pi_**4
+            )
+            * K**6
+            + (
+                60480 * (f2**3 - 2 * f0 * f2 * f4 + f0**2 * f6) * kF**9
+                + 3
+                * kF**2
+                * (
+                    29 * f0**2
+                    + 5040 * f2 * kF**4 * (f2 - 8 * f4 * kF**2)
+                    - 224 * f0 * (2 * f2 * kF**2 + 15 * kF**4 * (f4 - 12 * f6 * kF**2))
+                )
+                * pi_**2
+                + 2
+                * kF
+                * (31 * f0 - 42 * kF**2 * (f2 + 120 * kF**2 * (f4 - 6 * f6 * kF**2)))
+                * pi_**4
+                + 10 * pi_**6
+            )
+            * K**8
         )
-
-        return -numerator / (48 * kF**5 * np.pi * denom**4)
+        return -num / (48 * kF**5 * pi_ * D**4)
 
     raise ValueError("n must be 0,1,2,3")
 

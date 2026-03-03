@@ -11,20 +11,21 @@ def get_chi02(q, rs):
 
 
 def get_pi(q, rs):
+    kappa = 0.0225
     chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
     fxc = corradini_pz(rs, q)
-
-    piq = chi0q / (1 - chi0q * fxc)
+    vc = 4 * np.pi / (q**2 + kappa**2)
+    piq = chi0q / (1 - chi0q * (vc + fxc))
     piR = chi_r_from_chi_q_fast(q, piq)[1]
-
     return piR
 
 
 def get_piq(q, rs):
+    kappa = 0.0225
     chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
     fxc = corradini_pz(rs, q)
-
-    piq = chi0q / (1 - chi0q * fxc)
+    vc = 4 * np.pi / (q**2 + kappa**2)
+    piq = chi0q / (1 - chi0q * (vc + fxc))
     return piq
 
 
@@ -37,6 +38,16 @@ def get_chi(q, rs):
     chiR = chi_r_from_chi_q_fast(q, chiq)[1]
 
     return chiR
+
+
+def get_chiq(q, rs):
+    chi0q = chi00q(q, rs)  # -chi00q(q,rs,interacting=False)[0]
+    fxc = corradini_pz(rs, q)
+    vc = 4 * np.pi / q**2
+
+    chiq = chi0q / (1 - chi0q * (vc + fxc))
+
+    return chiq
 
 
 def get_gas_params(rs):

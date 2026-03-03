@@ -5,7 +5,7 @@ from numpy import pi
 from optimization.production import get_pi_interp
 from utils.fourier import chi_q_from_chi_r_fast
 from utils.physics import canon_cos_phase
-from utils.utils_chi import chi00q, corradini_pz, get_gas_params, get_pi, get_piq
+from utils.utils_chi import get_gas_params, get_pi, get_piq
 
 
 def _safe_tight_layout(fig, **kwargs):
@@ -75,7 +75,7 @@ def plot_parameters(params_dict):
     plt.savefig("parameters_best.png", bbox_inches="tight", dpi=600)
 
 
-def plot_chi(r, q, params_dict, rs, error=False):
+def plot_pi(r, q, params_dict, rs, error=False):
     from matplotlib.ticker import ScalarFormatter
 
     kF, n0, NF = get_gas_params(rs)
@@ -86,13 +86,9 @@ def plot_chi(r, q, params_dict, rs, error=False):
 
     fig, ax = plt.subplots(nrows=2, ncols=1)
 
-    fxc = corradini_pz(rs, q)
-    vc = 4 * np.pi / q**2
+    piq = get_piq(q, rs)
 
-    chi0q = chi00q(q, rs)
-    piq = chi0q / (1 - chi0q * fxc)
-
-    FT_q, FT_chiq = chi_q_from_chi_r_fast(r, pi_interpp, qlist=None)
+    FT_q, FT_piq = chi_q_from_chi_r_fast(r, pi_interpp, qlist=None)
 
     if error:
         # ax[0].plot(kF*r[::10],chiR[::10]/NF,'k-',label=r'$\chi^h(r)$')
@@ -112,11 +108,11 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].set_ylabel(r"$\Delta\Pi(r)/6\pi n_0 N_\mathrm{F}$", fontsize=font_size)
         # ax[0].set_title(fr'$r_s = {rs}$',fontsize=font_size)
 
-        # ax[1].plot(FT_q/kF,-np.abs(FT_chiq-chiq)/chiq*100,'r-.',label=r' $\chi^0(q)$ invFT',lw=1)
-        ax[1].plot(FT_q / kF, (piq - FT_chiq) / NF, "k-", lw=1)
+        # ax[1].plot(FT_q/kF,-np.abs(FT_piq-piq)/piq*100,'r-.',label=r' $\pi^0(q)$ invFT',lw=1)
+        ax[1].plot(FT_q / kF, (piq - FT_piq) / NF, "k-", lw=1)
 
         # error_qmc = 0.2577 / 2
-        limy = max(abs(piq - FT_chiq) / NF) * 1.2  # error_qmc*2
+        limy = max(abs(piq - FT_piq) / NF) * 1.2  # error_qmc*2
         # plt.axhspan(-error_qmc,error_qmc, xmax=10,color='grey', alpha=0.3)
         ax[1].set_ylim(-limy, limy)
         ax[1].plot(FT_q / kF, 0 * FT_q, "k", lw=0.25)
@@ -154,7 +150,7 @@ def plot_chi(r, q, params_dict, rs, error=False):
         ax[0].ticklabel_format(axis="y", style="sci", scilimits=(-1, -1))
 
         ax[1].plot(q / kF, -piq / NF, "k", label=r" $\Pi(q)$ analytical", lw=1)
-        ax[1].plot(FT_q / kF, -FT_chiq / NF, "r-.", label=r" $\Pi(q)$ invFT", lw=1)
+        ax[1].plot(FT_q / kF, -FT_piq / NF, "r-.", label=r" $\Pi(q)$ invFT", lw=1)
         ax[1].set_xlim(0, 10)
         ax[1].set_xlabel(r"$q/k_F$", fontsize=font_size, labelpad=2)
         ax[1].set_ylabel(r"$-\Pi(q)/N_\mathrm{F}$", fontsize=font_size)
@@ -631,34 +627,31 @@ def get_interpolated_params(rs, fits):
     return np.array(params)
 
 
-def plot_chi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
-    """Compare χ(r) and χ(q) using original vs interpolated parameters.
+def plot_pi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
+    """Compare π(r) and π(q) using original vs interpolated parameters.
 
     fits: output from fit_all_parameters()
     """
     from utils.fourier import chi_q_from_chi_r_fast
-    from utils.utils_chi import chi00q, corradini_pz, get_gas_params
+    from utils.utils_chi import get_gas_params
 
     kF, n0, NF = get_gas_params(rs)
 
-    # χ with original parameters
+    # π with original parameters
     pi_orig = get_pi(q, rs)  # get_chi_interp(r, q, params_dict, rs)
 
-    # χ with interpolated parameters
+    # π with interpolated parameters
     params_interp = get_interpolated_params(rs, fits)
     # Create a temporary params_dict with interpolated values
     temp_dict = {rs: params_interp, "model": params_dict["model"]}
     pi_interp = get_pi_interp(r, q, temp_dict, rs)
 
     # Fourier transforms
-    FT_q_orig, FT_chiq_orig = chi_q_from_chi_r_fast(r, pi_orig, qlist=None)
-    FT_q_interp, FT_chiq_interp = chi_q_from_chi_r_fast(r, pi_interp, qlist=None)
+    FT_q_orig, FT_piq_orig = chi_q_from_chi_r_fast(r, pi_orig, qlist=None)
+    FT_q_interp, FT_piq_interp = chi_q_from_chi_r_fast(r, pi_interp, qlist=None)
 
-    # Reference χ(q)
-    fxc = corradini_pz(rs, q)
-    vc = 4 * np.pi / q**2
-    chi0q = chi00q(q, rs)
-    chiq_ref = chi0q / (1 - chi0q * (vc + fxc))
+    # Reference π(q)
+    piq_ref = get_piq(q, rs)
 
     font_size = 10
 
@@ -683,7 +676,7 @@ def plot_chi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
         else f"Interpolated ({fits['form_name']})",
     )
     ax[0, 0].set_xlabel(r"$k_F r$", fontsize=font_size)
-    ax[0, 0].set_ylabel(r"$\chi(r) / (2k_F^4/\pi)$", fontsize=font_size)
+    ax[0, 0].set_ylabel(r"$\Pi(r) / (2k_F^4/\pi)$", fontsize=font_size)
     ax[0, 0].set_xlim(0, 15)
     lim_upper = 0.0002  # max(chiR/(2*kF**4/pi**3))*.2
     ax[0, 0].set_ylim(-lim_upper / 1, lim_upper)
@@ -691,34 +684,34 @@ def plot_chi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
     ax[0, 0].set_title(f"$r_s = {rs}$", fontsize=font_size)
     ax[0, 0].grid(True, alpha=0.3)
 
-    # Top-right: χ(r) difference
+    # Top-right: π(r) difference
     diff_r = (pi_interp - pi_orig) / (2 * kF**4 / pi)
     ax[0, 1].plot(kF * r, diff_r, "b-", lw=0.8)
     ax[0, 1].axhline(0, color="k", lw=0.5)
     ax[0, 1].set_xlabel(r"$k_F r$", fontsize=font_size)
-    ax[0, 1].set_ylabel(r"$\Delta\chi(r) / (2k_F^4/\pi)$", fontsize=font_size)
+    ax[0, 1].set_ylabel(r"$\Delta\Pi(r) / (2k_F^4/\pi)$", fontsize=font_size)
     ax[0, 1].set_xlim(0, 15)
     ax[0, 1].set_title(f"Diff: max={np.max(np.abs(diff_r)):.2e}", fontsize=font_size)
     ax[0, 1].grid(True, alpha=0.3)
 
-    # Bottom-left: χ(q) comparison
-    ax[1, 0].plot(FT_q_orig / kF, -FT_chiq_orig / NF, "k-", lw=1, label="Original")
+    # Bottom-left: π(q) comparison
+    ax[1, 0].plot(FT_q_orig / kF, -FT_piq_orig / NF, "k-", lw=1, label="Original")
     ax[1, 0].plot(
-        FT_q_interp / kF, -FT_chiq_interp / NF, "r--", lw=1, label="Interpolated"
+        FT_q_interp / kF, -FT_piq_interp / NF, "r--", lw=1, label="Interpolated"
     )
-    ax[1, 0].plot(q / kF, -chiq_ref / NF, "g:", lw=1, alpha=0.7, label="Reference")
+    ax[1, 0].plot(q / kF, -piq_ref / NF, "g:", lw=1, alpha=0.7, label="Reference")
     ax[1, 0].set_xlabel(r"$q/k_F$", fontsize=font_size)
-    ax[1, 0].set_ylabel(r"$-\chi(q)/N_F$", fontsize=font_size)
+    ax[1, 0].set_ylabel(r"$-\pi(q)/N_F$", fontsize=font_size)
     ax[1, 0].set_xlim(0, 6)
     ax[1, 0].legend(fontsize=8)
     ax[1, 0].grid(True, alpha=0.3)
 
-    # Bottom-right: χ(q) difference
-    diff_q = (FT_chiq_interp - FT_chiq_orig) / NF
+    # Bottom-right: π(q) difference
+    diff_q = (FT_piq_interp - FT_piq_orig) / NF
     ax[1, 1].plot(FT_q_orig / kF, diff_q, "b-", lw=0.8)
     ax[1, 1].axhline(0, color="k", lw=0.5)
     ax[1, 1].set_xlabel(r"$q/k_F$", fontsize=font_size)
-    ax[1, 1].set_ylabel(r"$\Delta\chi(q)/N_F$", fontsize=font_size)
+    ax[1, 1].set_ylabel(r"$\Delta\Pi(q)/N_F$", fontsize=font_size)
     ax[1, 1].set_xlim(0, 6)
     ax[1, 1].set_title(f"Diff: max={np.max(np.abs(diff_q)):.2e}", fontsize=font_size)
     ax[1, 1].grid(True, alpha=0.3)
@@ -727,8 +720,8 @@ def plot_chi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
     return {"max_diff_r": np.max(np.abs(diff_r)), "max_diff_q": np.max(np.abs(diff_q))}
 
 
-def scan_chi_interpolation_error(params_dict, form_name="Pade[2/2]", rs_test=None):
-    """Scan interpolation error in χ across multiple rs values.
+def scan_pi_interpolation_error(params_dict, form_name="Pade[2/2]", rs_test=None):
+    """Scan interpolation error in π across multiple rs values.
 
     form_name : str or dict  (same as fit_all_parameters)
     Returns list of dicts with error metrics, and the fits object.
@@ -751,28 +744,28 @@ def scan_chi_interpolation_error(params_dict, form_name="Pade[2/2]", rs_test=Non
     for rs in rs_test:
         kF, n0, NF = get_gas_params(rs)
 
-        # Original χ
-        pi_orig = get_pi(q, rs)  # get_chi_interp(r, q, params_dict, rs)
-        FT_chiq_orig = get_piq(q, rs)
+        # Original π
+        pi_orig = get_pi(q, rs)  # get_pi_interp(r, q, params_dict, rs)
+        FT_piq_orig = get_piq(q, rs)
 
-        # Interpolated χ
+        # Interpolated π
         params_interp = get_interpolated_params(rs, fits)
         temp_dict = {rs: params_interp, "model": params_dict["model"]}
         pi_interp = get_pi_interp(r, q, temp_dict, rs)
-        FT_q_interp, FT_chiq_interp = chi_q_from_chi_r_fast(r, pi_interp, qlist=None)
+        FT_q_interp, FT_piq_interp = chi_q_from_chi_r_fast(r, pi_interp, qlist=None)
 
         # Compute errors
         norm_r = 2 * kF**4 / pi
         norm_q = NF
-        q_mask = q < 10.0 * kF  # focus on low-q region where χ(q) is most relevant
+        q_mask = q < 10.0 * kF  # focus on low-q region where π(q) is most relevant
         diff_r = np.abs(pi_interp - pi_orig) / norm_r
-        diff_q = np.abs(FT_chiq_interp - FT_chiq_orig) / norm_q
+        diff_q = np.abs(FT_piq_interp - FT_piq_orig) / norm_q
 
         # Relative to original signal
         rel_r = np.max(diff_r) / (np.max(np.abs(pi_orig)) / norm_r + 1e-30) * 100
         rel_q = (
             np.max(diff_q[q_mask])
-            / (np.max(np.abs(FT_chiq_orig[q_mask])) / norm_q + 1e-30)
+            / (np.max(np.abs(FT_piq_orig[q_mask])) / norm_q + 1e-30)
             * 100
         )
 
@@ -781,7 +774,7 @@ def scan_chi_interpolation_error(params_dict, form_name="Pade[2/2]", rs_test=Non
 
         MADE_e = np.sum(diff_r) / (np.sum(np.abs(pi_orig)) / norm_r + 1e-30)
         MADE_q = np.sum(diff_q[q_mask]) / (
-            np.sum(np.abs(FT_chiq_orig[q_mask])) / norm_q + 1e-30
+            np.sum(np.abs(FT_piq_orig[q_mask])) / norm_q + 1e-30
         )
 
         results.append(
