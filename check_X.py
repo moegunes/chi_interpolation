@@ -130,21 +130,21 @@ from utils.fourier import chi_q_from_chi_r_fast
 from utils.utils_chi import G_Moroni, chi00q, corradini_pz, get_chi, get_gas_params
 
 # chi_reconstructed = chi0R - 6 * np.pi * n0 * NF * delta_chi_guess
-rslist = np.linspace(1, 1000, 10000)
+rslist = np.linspace(1, 200, 10000)
 mins_ALDA = []
 c = 0
-kappa = 0.025
+kappa = 0.0225
 for rs in rslist:
     kF, n0, NF = get_gas_params(rs)
     q = q[q < 30 * kF]
     fxc = corradini_pz(rs, q)
-    vc = 4 * np.pi / (q**2 + 0 * kappa**2)
+    vc = 4 * np.pi / (q**2 + kappa**2)
 
     G = G_Moroni(rs, q)
     fxc_Moroni = -vc * G
 
     chi0q = chi00q(q, rs)
-    mins_ALDA.append(np.min((1 - chi0q * (vc + fxc[0]))))
+    mins_ALDA.append(np.min((1 - chi0q * (vc + fxc))))
 
     c += 1
     if c % 50 == 0:
