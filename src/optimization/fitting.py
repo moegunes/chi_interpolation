@@ -2,7 +2,8 @@ import numpy as np
 from scipy.optimize import curve_fit, minimize
 
 from optimization.models import delta_pi
-from utils.utils_chi import get_chi02, get_gas_params, get_pi
+from utils.fourier import chi_q_from_chi_r_fast
+from utils.utils_chi import get_chi0, get_chi02, get_gas_params, get_pi, get_piq
 
 # --- Parameter bounds ---
 # params = [alpha0, f0, phi0, alpha1, f1, phi1]
@@ -62,12 +63,12 @@ def _physics_initial_guess(rs):
     kF = (9 * np.pi / 4) ** (1 / 3) / rs
     return np.array(
         [
-            1.5 / kF,
+            0.5 / kF,
             3 / 2.0 / np.pi,
             np.pi / 2 - 0.1,
             1 / kF,
-            -1 / 2.0 / np.pi,
-            np.pi / 2 + 0.1,
+            1 / 2.0 / np.pi,
+            np.pi / 3 + 0.1,
         ]
     )
 
@@ -352,6 +353,194 @@ def _global_smooth_refit(
     return parameters
 
 
+def _qspace_error(rs, params, r_grid, model):
+    """Compute max|δΠ(q)|/NF for a given rs and parameters.
+
+    Uses DST-I to transform the model π(r) → π(q), then compares against
+    the exact π(q) evaluated on the same DST q-grid.
+    """
+    kF, n0, NF = get_gas_params(rs)
+    factor = -6.0 * np.pi * n0 * NF
+    dpi_r = model(r_grid, rs=rs, params=params)
+    pi_r = get_chi0(r_grid, rs) + factor * dpi_r
+    q_dst, pi_q = chi_q_from_chi_r_fast(r_grid, pi_r)
+    pi_exact = get_piq(q_dst, rs)
+    q_mask = q_dst < 10.0 * kF
+    return np.max(np.abs(pi_q[q_mask] - pi_exact[q_mask])) / NF
+
+
+def _qspace_validation_refit(
+    rslist_sorted,
+    q,
+    r,
+    model,
+    parameters,
+    parameters_cov,
+    error_threshold=0.015,
+    n_restarts=100,
+):
+    """Phase 7: Validate q-space error and re-fit bad points with smoothness.
+
+    For each rs, compute the actual q-space error (max|δΠ(q)|/NF).
+    Points exceeding error_threshold are re-fit with n_restarts random
+    initial guesses spread across the parameter space.
+
+    Among all solutions with error < error_threshold, the one most consistent
+    with neighbor parameters is chosen (smoothness preference). Points are
+    processed from high rs to low rs so that fixed neighbors propagate inward.
+    """
+    # Build DST grid for q-space evaluation
+    N_dst = 4096 * 16
+    q_max_dst = 240.0
+    dq_dst = q_max_dst / N_dst
+    r_grid = np.arange(1, N_dst + 1) * np.pi / ((N_dst + 1) * dq_dst)
+
+    print(
+        f"Phase 7: Q-space validation + smooth refit (threshold={error_threshold})..."
+    )
+
+    # Identify bad points first
+    errors = {}
+    for rs_val in rslist_sorted:
+        errors[rs_val] = _qspace_error(rs_val, parameters[rs_val], r_grid, model)
+
+    bad_rs = [rs for rs in rslist_sorted if errors[rs] > error_threshold]
+    if not bad_rs:
+        print("  All points below threshold.")
+        return parameters, parameters_cov
+
+    # Process from high rs to low rs (interior outward) so neighbors are fixed
+    bad_rs_sorted = sorted(bad_rs, reverse=True)
+    print(f"  Bad points: {[f'{rs:.2f}' for rs in bad_rs_sorted]}")
+
+    # Parameter scales for distance computation (normalize by typical ranges)
+    param_scales = np.array([1.0, 0.1, 1.0, 1.0, 0.1, 1.0])
+
+    for rs_val in bad_rs_sorted:
+        old_err = errors[rs_val]
+        kF, n0, NF = get_gas_params(rs_val)
+        factor = -6.0 * np.pi * n0 * NF
+        piR = get_pi(q, rs_val)
+        chi0R = get_chi02(q, rs_val)
+        delta_pi_exact = -(chi0R - piR) / factor
+
+        # Get neighbor parameters for smoothness preference
+        idx = list(rslist_sorted).index(rs_val)
+        neighbor_params = []
+        if idx > 0:
+            neighbor_params.append(parameters[rslist_sorted[idx - 1]])
+        if idx < len(rslist_sorted) - 1:
+            neighbor_params.append(parameters[rslist_sorted[idx + 1]])
+        neighbor_mean = np.mean(neighbor_params, axis=0) if neighbor_params else None
+
+        # Collect ALL candidates: (error, params, cov)
+        candidates = []
+
+        def model_wrapper(r_arr, a0, f0, ph0, a1, f1, ph1):
+            return model(r_arr, rs=rs_val, params=[a0, f0, ph0, a1, f1, ph1])
+
+        # Try multiple kfR_max values
+        for kfr_max_test in [6.0, 10.0, 15.0]:
+            i0 = np.argmin(np.abs(kF * r - 0))
+            i1 = np.argmin(np.abs(kF * r - kfr_max_test))
+            rf = r[i0:i1]
+            yf = delta_pi_exact[i0:i1]
+            step = max(1, len(rf) // 4000)
+            rf, yf = rf[::step], yf[::step]
+
+            # Seed guesses: current params, neighbor params, interpolation
+            seeds = [parameters[rs_val].copy()]
+            if neighbor_params:
+                for np_ in neighbor_params:
+                    seeds.append(np_.copy())
+                if len(neighbor_params) == 2:
+                    seeds.append(np.mean(neighbor_params, axis=0))
+
+            for seed in seeds:
+                try:
+                    p0c = np.clip(seed, BOUNDS_LOWER + 1e-6, BOUNDS_UPPER - 1e-6)
+                    popt, pcov = curve_fit(
+                        model_wrapper,
+                        rf,
+                        yf,
+                        p0=p0c,
+                        bounds=(BOUNDS_LOWER, BOUNDS_UPPER),
+                        method="trf",
+                        maxfev=30000,
+                    )
+                    popt = _canonicalize_params(popt, rs_val)
+                    e = _qspace_error(rs_val, popt, r_grid, model)
+                    candidates.append((e, popt.copy(), pcov))
+                except Exception:
+                    pass
+
+            # Random restarts
+            for trial in range(n_restarts):
+                p0 = np.array(
+                    [
+                        np.exp(np.random.uniform(np.log(0.001), np.log(5.0))),
+                        np.random.uniform(0.02, 0.5),
+                        np.random.uniform(-np.pi, np.pi),
+                        np.exp(np.random.uniform(np.log(0.001), np.log(5.0))),
+                        np.random.uniform(0.02, 0.5),
+                        np.random.uniform(-np.pi, np.pi),
+                    ]
+                )
+                try:
+                    p0c = np.clip(p0, BOUNDS_LOWER + 1e-6, BOUNDS_UPPER - 1e-6)
+                    popt, pcov = curve_fit(
+                        model_wrapper,
+                        rf,
+                        yf,
+                        p0=p0c,
+                        bounds=(BOUNDS_LOWER, BOUNDS_UPPER),
+                        method="trf",
+                        maxfev=30000,
+                    )
+                    popt = _canonicalize_params(popt, rs_val)
+                    e = _qspace_error(rs_val, popt, r_grid, model)
+                    candidates.append((e, popt.copy(), pcov))
+                except Exception:
+                    pass
+
+        if not candidates:
+            print(f"  rs={rs_val:.2f}: {old_err:.6f} → NO CANDIDATES")
+            continue
+
+        # Among candidates below threshold, pick the smoothest (closest to neighbor mean)
+        good_candidates = [(e, p, c) for e, p, c in candidates if e <= error_threshold]
+
+        if good_candidates and neighbor_mean is not None:
+            # Pick the one with minimum parameter distance to neighbor mean
+            def param_distance(params):
+                diff = (params - neighbor_mean) / param_scales
+                return np.sum(diff**2)
+
+            good_candidates.sort(key=lambda x: param_distance(x[1]))
+            best_err, best_params, best_cov = good_candidates[0]
+            n_good = len(good_candidates)
+        elif good_candidates:
+            # No neighbors — pick lowest error
+            good_candidates.sort(key=lambda x: x[0])
+            best_err, best_params, best_cov = good_candidates[0]
+            n_good = len(good_candidates)
+        else:
+            # No candidate below threshold — pick the best error
+            candidates.sort(key=lambda x: x[0])
+            best_err, best_params, best_cov = candidates[0]
+            n_good = 0
+
+        parameters[rs_val] = best_params
+        parameters_cov[rs_val] = best_cov
+        print(
+            f"  rs={rs_val:.2f}: {old_err:.6f} → {best_err:.6f}"
+            f"  ({n_good} candidates below threshold)"
+        )
+
+    print(f"  Re-fit {len(bad_rs)} points.")
+    return parameters, parameters_cov
+
+
 def fit_params(
     rslist, q, r, model=delta_pi, inverse=False, n_restarts=3, cost_tolerance=3.0
 ):
@@ -561,6 +750,20 @@ def fit_params(
     # --- Phase 6: Global smooth re-fit ---
     parameters = _global_smooth_refit(
         rslist_sorted, q, r, model, parameters, lambda_smooth=50.0, max_iter=2000
+    )
+
+    # --- Phase 7: Q-space validation and aggressive re-fit ---
+    # Run AFTER the global smooth refit, which can degrade accuracy
+    # at some rs points in exchange for smoothness.
+    parameters, parameters_cov = _qspace_validation_refit(
+        rslist_sorted,
+        q,
+        r,
+        model,
+        parameters,
+        parameters_cov,
+        error_threshold=0.015,
+        n_restarts=100,
     )
 
     return parameters, parameters_cov

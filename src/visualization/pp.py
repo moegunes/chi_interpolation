@@ -314,6 +314,28 @@ def f_shifted_pz(x, a, b, c, d):
     return a + b / (1 + c * np.sqrt(np.abs(x)) + d * x)
 
 
+def f_pade34(x, a, b, c, d, e, f, g, h, i):
+    """Padé[3/4] in rs, 9 params."""
+    return i + (a + b * x + c * x**2 + d * x**3) / (
+        1 + e * x + f * x**2 + g * x**3 + h * x**4
+    )
+
+
+def f_pade34_sqrt(x, a, b, c, d, e, f, g, h, i):
+    """Padé[3/4] in √rs, 9 params."""
+    s = np.sqrt(np.abs(x))
+    return i + (a + b * s + c * s**2 + d * s**3) / (
+        1 + e * s + f * s**2 + g * s**3 + h * s**4
+    )
+
+
+def f2_pade34(x, a, b, c, d, e, f, g, h, i, j):
+    """mPZ[3/4] — modified Padé[3/4] in rs, 10 params."""
+    return j + (a + b * x + c * x**2 + d * x**3 + i * x**4) / (
+        1 + e * x + f * x**2 + g * x**3 + h * x**4
+    )
+
+
 def f_sat_bump(x, a, b, c, d):
     """a + (b + c·rs)·exp(-d·rs) — saturation + exponential bump, 4 params.
     f(0)=a+b, f(∞)=a; bump at rs=1/d - b/c."""
@@ -346,6 +368,9 @@ PARAMETRIC_FORMS = {
     "two Pade[1/1]": (f_two_pade11, 6),
     "two Pade[1/1]√": (f_two_pade11_sqrt, 6),
     "two denom": (f_two_denom, 6),
+    "PZ[3/4]": (f_pade34, 9),
+    "PZ[3/4]√": (f_pade34_sqrt, 9),
+    "mPZ[3/4]": (f2_pade34, 10),
 }
 
 
@@ -355,6 +380,8 @@ def fit_parametric_forms(rs_arr, y_arr, forms=None):
     Returns dict of {form_name: (func, ncoeff, popt, rmse, maxerr, maxpct)}
     """
     from scipy.optimize import curve_fit
+
+    # rs where it is larger than 0.5
 
     if forms is None:
         forms = PARAMETRIC_FORMS
@@ -612,7 +639,10 @@ def get_interpolated_params(rs, fits):
     """Get 6 interpolated parameters at a given rs using fitted forms.
 
     Supports per-parameter forms (each entry in fits stores its own func).
+    Applies physical constraints: frequencies (f0, f1) >= F_MIN,
+    damping (alpha0, alpha1) > 0.
     """
+    F_MIN = 0.02  # Minimum frequency — must match fitting.py
     params = []
     for pname in ["alpha0", "f0", "phi0", "alpha1", "f1", "phi1"]:
         entry = fits[pname]
@@ -623,7 +653,14 @@ def get_interpolated_params(rs, fits):
         if func is None:
             # Legacy fallback: single form_name
             func = PARAMETRIC_FORMS[fits["form_name"]][0]
-        params.append(func(rs, *entry["popt"]))
+        val = func(rs, *entry["popt"])
+        # Physical constraint: frequencies must be non-negative and ≥ F_MIN
+        if pname in ("f0", "f1"):
+            val = max(val, F_MIN)
+        # Physical constraint: damping must be positive
+        if pname in ("alpha0", "alpha1"):
+            val = max(val, 1e-4)
+        params.append(val)
     return np.array(params)
 
 
@@ -657,7 +694,8 @@ def plot_pi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
 
     if ax is None:
         fig, ax = plt.subplots(2, 2, figsize=(12, 8))
-
+    else:
+        fig = ax[0, 0].get_figure()
     # Top-left: χ(r) comparison
     ax[0, 0].plot(
         kF * r[::10],
@@ -678,7 +716,7 @@ def plot_pi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
     ax[0, 0].set_xlabel(r"$k_F r$", fontsize=font_size)
     ax[0, 0].set_ylabel(r"$\Pi(r) / (2k_F^4/\pi)$", fontsize=font_size)
     ax[0, 0].set_xlim(0, 15)
-    lim_upper = 0.0002  # max(chiR/(2*kF**4/pi**3))*.2
+    lim_upper = max(pi_orig / (2 * kF**4 / pi**3)) * 0.2  # max(chiR/(2*kF**4/pi**3))*.2
     ax[0, 0].set_ylim(-lim_upper / 1, lim_upper)
     ax[0, 0].legend(fontsize=8)
     ax[0, 0].set_title(f"$r_s = {rs}$", fontsize=font_size)
@@ -690,7 +728,10 @@ def plot_pi_interpolated(r, q, params_dict, rs, fits, ax=None, show_diff=True):
     ax[0, 1].axhline(0, color="k", lw=0.5)
     ax[0, 1].set_xlabel(r"$k_F r$", fontsize=font_size)
     ax[0, 1].set_ylabel(r"$\Delta\Pi(r) / (2k_F^4/\pi)$", fontsize=font_size)
-    ax[0, 1].set_xlim(0, 15)
+    ax[0, 1].set_xlim(0.5, 15)
+    ax[0, 1].set_ylim(
+        -max(np.abs(diff_r[r > 0.5])) * 1.2, max(np.abs(diff_r[r > 0.5])) * 1.2
+    )
     ax[0, 1].set_title(f"Diff: max={np.max(np.abs(diff_r)):.2e}", fontsize=font_size)
     ax[0, 1].grid(True, alpha=0.3)
 

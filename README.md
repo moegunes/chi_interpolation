@@ -1,4 +1,17 @@
 # Interpolating $\chi(r)$
+
+## Environment setup
+
+In a fresh virtual environment, install this project in editable mode from the
+`chi_interpolation` directory:
+
+```bash
+python -m pip install -e .
+```
+
+This exposes the packages in `src/` (such as `utils`, `optimization`, and
+`visualization`) so imports like `from utils...` work in scripts and notebooks.
+
 We would like to interpolate the interacting response by using as much knowledge from the non-interacting case as we can. We already know that it satisfies certain behaviors, such as $\chi(q) \propto 1/q^2$ for large- $q$ and $\chi(q) \propto/q^2$ low- $q$. Therefore, the intermediate regime constitutes the key region in which interaction effects become important. These points translates to real space the same way. The large- $r$ behavior is exactly known \cite{Simione2005}, as well as diverging tail as $r\rightarrow 0$ which produces the $1/q^2$ behavior. Thus, we now focus on the intermediate- $r$ region. From Figure \ref{fig:int_vs_nonint} we can already infer that the relevant regime for us would be $k_Fr \simeq [0,6]$. 
 
 

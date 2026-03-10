@@ -1,10 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "chi-interpolation"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+	"numpy",
+	"scipy",
+	"matplotlib",
+	"scienceplots",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
